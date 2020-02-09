@@ -4,6 +4,7 @@
 #include <netinet/in.h>
 #include <stdlib.h>
 #include "server.h"
+#include "parser.h"
 
 int main(int argc, char **argv)
 {

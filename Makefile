@@ -3,15 +3,28 @@
 # make test		# run tests
 # make clean	# remove all binaries and objects
 
-.PHONY: build test clean
+.PHONY: build test
 
-build:
-	gcc src/server.c -o build/server
+LD=gcc
+CC=gcc
 
-test: build
-	gcc tests/include/*.c tests/run.c -o build/tests
+CC_FLAGS=-Wall
+LD_FLAGS=
+
+build: server.o parser.o
+	$(LD) $(LD_FLAGS) -o build/server build/obj/server.o build/obj/parser.o
+
+parser.o: src/parser.c
+	$(CC) $(CC_FLAGS) -c $< -o build/obj/$@
+
+server.o: src/server.c
+	$(CC) $(CC_FLAGS) -c $< -o build/obj/$@
+
+test: parser.o
+	$(CC) $(CC_FLAGS) -o build/tests build/obj/parser.o tests/include/*.c tests/run.c
 	build/tests
 
 clean:
+	rm -f build/obj/*.o
 	rm -f build/server
 	rm -f build/tests
