@@ -3,48 +3,89 @@
 #include "parser.h"
 #include "alloc.h"
 
-struct ff_request_header* ff_request_header_alloc()
+struct ff_request_option_node *ff_request_option_node_alloc()
 {
-    struct ff_request_header* header = (struct ff_request_header*)malloc(sizeof(struct ff_request_header));
+    struct ff_request_option_node *option = (struct ff_request_option_node *)malloc(sizeof(struct ff_request_option_node));
 
-    header->key = NULL;
-    header->value = NULL;
+    option->type = 0;
+    option->length = 0;
+    option->value = NULL;
+    option->next = NULL;
 
-    return header;
+    return option;
 }
 
-void ff_request_header_free(struct ff_request_header* header)
+void ff_request_option_node_free(struct ff_request_option_node *option)
 {
-    if (header == NULL) return;
+    if (option == NULL)
+        return;
 
-    FREE(header->key);
-    FREE(header->value);
+    FREE(option->value);
 
-    FREE(header);
+    FREE(option);
 }
 
-struct ff_request* ff_request_alloc()
+struct ff_request_payload_node *ff_request_payload_node_alloc()
 {
-    struct ff_request* request = (struct ff_request*)malloc(sizeof(struct ff_request));
+    struct ff_request_payload_node *node = (struct ff_request_payload_node *)malloc(sizeof(struct ff_request_payload_node));
+
+    node->length = 0;
+    node->offset = 0;
+    node->value = NULL;
+    node->next = NULL;
+
+    return node;
+}
+
+void ff_request_payload_node_free(struct ff_request_payload_node *node)
+{
+    if (node == NULL)
+        return;
+
+    FREE(node->value);
+
+    FREE(node);
+}
+
+struct ff_request *ff_request_alloc()
+{
+    struct ff_request *request = (struct ff_request *)malloc(sizeof(struct ff_request));
 
     request->state = FF_REQUEST_STATE_RECEIVING;
-    request->method = NULL;
-    request->path = NULL;
-    request->headers_length = 0;
-    request->headers = NULL;
-    request->body = NULL;
+    request->version = 0;
+    request->request_id = 0;
+    request->source_address_type = 0;
+    request->options = NULL;
+    request->payload_length = 0;
+    request->payload = NULL;
 
     return request;
 }
 
-void ff_request_free(struct ff_request* request)
+void ff_request_free(struct ff_request *request)
 {
-    if (request == NULL) return;
+    if (request == NULL)
+        return;
 
-    FREE(request->method);
-    FREE(request->path);
-    FREE(request->headers);
-    FREE(request->body);
+    struct ff_request_option_node *option_node = request->options;
+    struct ff_request_option_node *option_prev;
+
+    while (option_node != NULL)
+    {
+        option_prev = option_node;
+        option_node = option_node->next;
+        ff_request_option_node_free(option_prev);
+    }
+
+    struct ff_request_payload_node *payload_node = request->payload;
+    struct ff_request_payload_node *payload_prev;
+
+    while (payload_node != NULL)
+    {
+        payload_prev = payload_node;
+        payload_node = payload_node->next;
+        ff_request_payload_node_free(payload_prev);
+    }
 
     FREE(request);
 }
