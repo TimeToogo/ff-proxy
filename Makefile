@@ -11,13 +11,19 @@ CC=gcc
 CC_FLAGS=-Wall 
 LD_FLAGS=
 
-build: server.o parser.o
-	$(LD) $(LD_FLAGS) -o build/server build/obj/server.o build/obj/parser.o
+build: server.o parser.o constants.o logging.o
+	$(LD) $(LD_FLAGS) -o build/server $(wildcard build/obj/*.o)
 
 parser.o: src/parser.c
 	$(CC) $(CC_FLAGS) -c $< -o build/obj/$@
 
 server.o: src/server.c
+	$(CC) $(CC_FLAGS) -c $< -o build/obj/$@
+
+constants.o: src/constants.c
+	$(CC) $(CC_FLAGS) -c $< -o build/obj/$@
+
+logging.o: src/logging.c
 	$(CC) $(CC_FLAGS) -c $< -o build/obj/$@
 
 test_build: build

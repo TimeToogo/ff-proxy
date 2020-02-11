@@ -1,5 +1,5 @@
-#ifndef ALLOC_H
-#define ALLOC_H
+#ifndef FF_ALLOC_H
+#define FF_ALLOC_H
 
 #define FREE(x) do { \
     free((x));       \

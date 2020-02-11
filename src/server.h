@@ -1,5 +1,5 @@
-#ifndef SERVER_H
-#define SERVER_H
+#ifndef FF_SERVER_H
+#define FF_SERVER_H
 
 #define PORT 8080
 #define SOCK_BACKLOG 10

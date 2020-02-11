@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <string.h>
 #include "include/unity.h"
 #include "../src/parser.h"
 
@@ -66,6 +67,8 @@ void test_request_alloc()
     TEST_ASSERT(request->source_address_type == 0);
     TEST_ASSERT(request->options == NULL);
     TEST_ASSERT(request->payload == NULL);
+    TEST_ASSERT(request->payload_length == 0);
+    TEST_ASSERT(request->received_length == 0);
 
     free(request);
 }
@@ -74,16 +77,35 @@ void test_request_free()
 {
     struct ff_request *request = ff_request_alloc();
 
-    struct ff_request_option_node* option_a = ff_request_option_node_alloc();
-    struct ff_request_option_node* option_b = ff_request_option_node_alloc();
+    struct ff_request_option_node *option_a = ff_request_option_node_alloc();
+    struct ff_request_option_node *option_b = ff_request_option_node_alloc();
     option_a->next = option_b;
 
-    struct ff_request_payload_node* node_a = ff_request_payload_node_alloc();
-    struct ff_request_payload_node* node_b = ff_request_payload_node_alloc();
+    struct ff_request_payload_node *node_a = ff_request_payload_node_alloc();
+    struct ff_request_payload_node *node_b = ff_request_payload_node_alloc();
     node_a->next = node_b;
 
     request->options = option_a;
     request->payload = node_a;
+
+    ff_request_free(request);
+}
+
+void test_request_parse_raw_http()
+{
+    char *RAW_HTTP_REQUEST = "GET / HTTP/1.1\nHost: stackoverflow.com\n\n";
+
+    struct ff_request *request = ff_request_alloc();
+    ff_request_parse_chunk(request, strlen(RAW_HTTP_REQUEST), RAW_HTTP_REQUEST);
+
+    TEST_ASSERT_EQUAL_MESSAGE(FF_VERSION_RAW, request->version, "Version check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(FF_REQUEST_STATE_RECEIVED, request->state, "State check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(0, request->request_id, "Request ID check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(strlen(RAW_HTTP_REQUEST), request->received_length, "Received length check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(strlen(RAW_HTTP_REQUEST), request->payload_length, "Payload length check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(0, request->payload->offset, "Payload node offset check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(strlen(RAW_HTTP_REQUEST), request->payload->length, "Payload node length check failed");
+    TEST_ASSERT_EQUAL_STRING_MESSAGE(RAW_HTTP_REQUEST, request->payload->value, "Payload node value check failed");
 
     ff_request_free(request);
 }
