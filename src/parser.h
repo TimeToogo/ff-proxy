@@ -67,20 +67,22 @@ struct __raw_ff_request_header {
     uint32_t total_length;
     uint16_t chunk_offset;
     uint16_t chunk_length;
-};
+} __attribute__ ((packed));
 
 struct __raw_ff_request_option_header {
     uint8_t type;
     uint16_t length;
-};
+} __attribute__ ((packed));
 
 struct ff_request_option_node* ff_request_option_node_alloc(void);
+
+void ff_request_option_load_buff(struct ff_request_option_node* node, uint32_t buff_size, void* buff);
 
 void ff_request_option_node_free(struct ff_request_option_node*);
 
 struct ff_request_payload_node* ff_request_payload_node_alloc(void);
 
-void ff_request_payload_load_buff(struct ff_request_payload_node* node, int buff_size, char* buff);
+void ff_request_payload_load_buff(struct ff_request_payload_node* node, uint32_t buff_size, void* buff);
 
 void ff_request_payload_node_free(struct ff_request_payload_node*);
 
@@ -88,12 +90,12 @@ struct ff_request* ff_request_alloc(void);
 
 void ff_request_free(struct ff_request*);
 
-void ff_request_parse_chunk(struct ff_request* request, uint32_t buff_size, char* buff);
+void ff_request_parse_chunk(struct ff_request* request, uint32_t buff_size, void* buff);
 
-void ff_request_parse_first_chunk(struct ff_request* request, uint32_t buff_size, char* buff);
+void ff_request_parse_first_chunk(struct ff_request* request, uint32_t buff_size, void* buff);
 
-void ff_request_parse_raw_http(struct ff_request* request, uint32_t buff_size, char* buff);
+void ff_request_parse_raw_http(struct ff_request* request, uint32_t buff_size, void* buff);
 
-void ff_request_parse_data_chunk(struct ff_request* request, uint32_t buff_size, char* buff);
+void ff_request_parse_data_chunk(struct ff_request* request, uint32_t buff_size, void* buff);
 
 #endif

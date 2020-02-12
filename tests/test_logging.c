@@ -4,5 +4,6 @@
 
 void test_log_debug()
 {
+    // TODO: work out how best to test
     ff_log(FF_DEBUG, "test message %d", 123);
 }

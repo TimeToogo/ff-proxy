@@ -20,7 +20,11 @@ int main(void) {
     RUN_TEST(test_request_payload_node_free);
     RUN_TEST(test_request_alloc);
     RUN_TEST(test_request_free);
-    RUN_TEST(test_request_parse_raw_http);
+    RUN_TEST(test_request_parse_raw_http_get);
+    RUN_TEST(test_request_parse_raw_http_post);
+    RUN_TEST(test_request_parse_v1_single_chunk);
+    RUN_TEST(test_request_parse_v1_multiple_chunks);
+    RUN_TEST(test_request_parse_v1_single_chunk_with_options);
     RUN_TEST(test_log_debug);
     return UNITY_END();
 }

@@ -19,6 +19,15 @@ struct ff_request_option_node *ff_request_option_node_alloc()
     return option;
 }
 
+void ff_request_option_load_buff(struct ff_request_option_node *node, uint32_t buff_size, void *buff)
+{
+    void *buff_copy = (char *)malloc(buff_size * sizeof(buff));
+
+    memcpy(buff_copy, buff, buff_size);
+
+    node->value = buff_copy;
+}
+
 void ff_request_option_node_free(struct ff_request_option_node *option)
 {
     if (option == NULL)
@@ -41,9 +50,9 @@ struct ff_request_payload_node *ff_request_payload_node_alloc()
     return node;
 }
 
-void ff_request_payload_load_buff(struct ff_request_payload_node *node, int buff_size, char *buff)
+void ff_request_payload_load_buff(struct ff_request_payload_node *node, uint32_t buff_size, void *buff)
 {
-    char *buff_copy = (char *)malloc(buff_size * sizeof(buff));
+    void *buff_copy = (char *)malloc(buff_size * sizeof(buff));
 
     memcpy(buff_copy, buff, buff_size);
 
@@ -104,7 +113,7 @@ void ff_request_free(struct ff_request *request)
     FREE(request);
 }
 
-void ff_request_parse_chunk(struct ff_request *request, uint32_t buff_size, char *buff)
+void ff_request_parse_chunk(struct ff_request *request, uint32_t buff_size, void *buff)
 {
     bool isFirstChunk = request->version == 0;
 
@@ -118,7 +127,7 @@ void ff_request_parse_chunk(struct ff_request *request, uint32_t buff_size, char
     }
 }
 
-void ff_request_parse_first_chunk(struct ff_request *request, uint32_t buff_size, char *buff)
+void ff_request_parse_first_chunk(struct ff_request *request, uint32_t buff_size, void *buff)
 {
     bool isRawHttpRequest = false;
 
@@ -146,7 +155,7 @@ void ff_request_parse_first_chunk(struct ff_request *request, uint32_t buff_size
     }
 }
 
-void ff_request_parse_raw_http(struct ff_request *request, uint32_t buff_size, char *buff)
+void ff_request_parse_raw_http(struct ff_request *request, uint32_t buff_size, void *buff)
 {
     request->version = FF_VERSION_RAW;
     request->state = FF_REQUEST_STATE_RECEIVED;
@@ -157,13 +166,23 @@ void ff_request_parse_raw_http(struct ff_request *request, uint32_t buff_size, c
     ff_request_payload_load_buff(request->payload, buff_size, buff);
 }
 
-void ff_request_parse_data_chunk(struct ff_request *request, uint32_t buff_size, char *buff)
+void ff_request_parse_data_chunk(struct ff_request *request, uint32_t buff_size, void *buff)
 {
+    uint32_t i = 0;
+
+    if (buff_size < sizeof(struct __raw_ff_request_header))
+    {
+        ff_log(FF_WARNING, "Packet buffer to small to contain header (%d)", buff_size);
+        request->state = FF_REQUEST_STATE_RECEIVED_FAIL;
+        return;
+    }
+
     struct __raw_ff_request_header *header = (struct __raw_ff_request_header *)buff;
+    i += sizeof(struct __raw_ff_request_header);
 
     if (request->version != FF_VERSION_1)
     {
-        ff_log(FF_WARNING, "Request received unknown version flag %d", request->version);
+        ff_log(FF_WARNING, "Request received with unknown version flag %d", request->version);
         request->state = FF_REQUEST_STATE_RECEIVED_FAIL;
         return;
     }
@@ -196,15 +215,94 @@ void ff_request_parse_data_chunk(struct ff_request *request, uint32_t buff_size,
         return;
     }
 
-    // TODO: Parse TLV header options
+    struct __raw_ff_request_option_header *option_header = NULL;
+
+    if (buff_size < i + sizeof(struct __raw_ff_request_option_header))
+    {
+        ff_log(FF_WARNING, "Packet buffer ran out while looking for TLV options");
+        request->state = FF_REQUEST_STATE_RECEIVED_FAIL;
+        return;
+    }
+
+    if (header->chunk_offset == 0)
+    {
+        // Parse TLV options
+        struct ff_request_option_node *prev_option = NULL;
+        struct ff_request_option_node *option = NULL;
+        while (1)
+        {
+            if (buff_size < i + sizeof(struct __raw_ff_request_option_header))
+            {
+                ff_log(FF_WARNING, "Packet buffer ran out while processing TLV options");
+                request->state = FF_REQUEST_STATE_RECEIVED_FAIL;
+                return;
+            }
+
+            option_header = (struct __raw_ff_request_option_header *)(buff + i);
+
+            i += sizeof(struct __raw_ff_request_option_header);
+
+            if (option_header->type == FF_REQUEST_OPTION_TYPE_EOL)
+            {
+                break;
+            }
+
+            if (buff_size < i + option_header->length)
+            {
+                ff_log(FF_WARNING, "Packet buffer ran out while processing TLV options");
+                request->state = FF_REQUEST_STATE_RECEIVED_FAIL;
+                return;
+            }
+
+            option = ff_request_option_node_alloc();
+            option->type = option_header->type;
+            option->length = option_header->length;
+            ff_request_option_load_buff(
+                option,
+                option_header->length,
+                buff + i);
+
+            i += option_header->length;
+
+            if (prev_option == NULL)
+            {
+                request->options = option;
+            }
+            else
+            {
+                prev_option->next = option;
+                prev_option = option;
+            }
+        }
+    }
+    else
+    {
+        option_header = (struct __raw_ff_request_option_header *)(buff + i);
+
+        i += sizeof(struct __raw_ff_request_option_header);
+
+        if (option_header->type != FF_REQUEST_OPTION_TYPE_EOL)
+        {
+            ff_log(FF_WARNING, "Noninitial packets cannot contain request options");
+            request->state = FF_REQUEST_STATE_RECEIVED_FAIL;
+            return;
+        }
+    }
+
+    if (buff_size < i + header->chunk_length)
+    {
+        ff_log(FF_WARNING, "Packet buffer ran out while receiving payload");
+        request->state = FF_REQUEST_STATE_RECEIVED_FAIL;
+        return;
+    }
 
     struct ff_request_payload_node *node = ff_request_payload_node_alloc();
     node->offset = header->chunk_offset;
     node->length = header->chunk_length;
     ff_request_payload_load_buff(
         node,
-        buff_size - sizeof(struct __raw_ff_request_header),
-        buff + sizeof(struct __raw_ff_request_header));
+        buff_size - i,
+        buff + i);
 
     if (request->payload == NULL)
     {
@@ -215,14 +313,19 @@ void ff_request_parse_data_chunk(struct ff_request *request, uint32_t buff_size,
     {
         struct ff_request_payload_node *current_node = request->payload;
 
-        while (current_node->next != NULL)
+        while (1)
         {
-            bool overlapsExistingNode = node->offset <= current_node->offset + current_node->length && current_node->offset <= node->offset + node->length;
+            bool overlapsExistingNode = node->offset < current_node->offset + current_node->length && current_node->offset <= node->offset + node->length;
             if (overlapsExistingNode)
             {
                 ff_log(FF_WARNING, "Received chunk range overlaps existing data");
                 request->state = FF_REQUEST_STATE_RECEIVED_FAIL;
                 return;
+            }
+
+            if (current_node->next == NULL)
+            {
+                break;
             }
 
             current_node = current_node->next;
@@ -232,7 +335,8 @@ void ff_request_parse_data_chunk(struct ff_request *request, uint32_t buff_size,
         request->received_length += node->length;
     }
 
-    if (request->received_length == request->payload_length) {
+    if (request->received_length == request->payload_length)
+    {
         request->state = FF_REQUEST_STATE_RECEIVED;
     }
 }
