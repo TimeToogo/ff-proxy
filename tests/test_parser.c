@@ -11,7 +11,6 @@ void test_request_option_node_alloc()
     TEST_ASSERT(option->type == 0);
     TEST_ASSERT(option->length == 0);
     TEST_ASSERT(option->value == NULL);
-    TEST_ASSERT(option->next == NULL);
 
     free(option);
 }
@@ -19,16 +18,12 @@ void test_request_option_node_alloc()
 void test_request_option_node_free()
 {
     struct ff_request_option_node *option = ff_request_option_node_alloc();
-    void *next_node;
 
     option->value = (char *)malloc(10);
-    next_node = option->next = (void *)malloc(10);
 
     ff_request_option_node_free(option);
 
     TEST_ASSERT(option->value == NULL);
-    TEST_ASSERT_MESSAGE(option->next == next_node, "Should not free next node");
-    free(next_node);
 }
 
 void test_request_payload_node_alloc()
@@ -80,13 +75,15 @@ void test_request_free()
 
     struct ff_request_option_node *option_a = ff_request_option_node_alloc();
     struct ff_request_option_node *option_b = ff_request_option_node_alloc();
-    option_a->next = option_b;
 
     struct ff_request_payload_node *node_a = ff_request_payload_node_alloc();
     struct ff_request_payload_node *node_b = ff_request_payload_node_alloc();
     node_a->next = node_b;
 
-    request->options = option_a;
+    request->options = malloc(sizeof(struct ff_request_option_node*) * 2);
+    request->options_length = 2;
+    request->options[0] = option_a;
+    request->options[1] = option_b;
     request->payload = node_a;
 
     ff_request_free(request);
@@ -162,6 +159,7 @@ void test_request_parse_v1_single_chunk()
     TEST_ASSERT_EQUAL_MESSAGE(1234568, request->request_id, "Request ID check failed");
     TEST_ASSERT_EQUAL_MESSAGE(strlen(http_request), request->received_length, "Received length check failed");
     TEST_ASSERT_EQUAL_MESSAGE(strlen(http_request), request->payload_length, "Payload length check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(0, request->options_length, "Options length check failed");
     TEST_ASSERT_EQUAL_MESSAGE(NULL, request->options, "Options check failed");
     TEST_ASSERT_EQUAL_MESSAGE(0, request->payload->offset, "Payload node offset check failed");
     TEST_ASSERT_EQUAL_MESSAGE(strlen(http_request), request->payload->length, "Payload node length check failed");
@@ -222,6 +220,7 @@ void test_request_parse_v1_multiple_chunks()
     TEST_ASSERT_EQUAL_MESSAGE(1234568, request->request_id, "Request ID check failed");
     TEST_ASSERT_EQUAL_MESSAGE(total_length, request->received_length, "Received length check failed");
     TEST_ASSERT_EQUAL_MESSAGE(total_length, request->payload_length, "Payload length check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(0, request->options_length, "Options length check failed");
     TEST_ASSERT_EQUAL_MESSAGE(NULL, request->options, "Options check failed");
     TEST_ASSERT_EQUAL_MESSAGE(0, request->payload->offset, "Payload node (1) offset check failed");
     TEST_ASSERT_EQUAL_MESSAGE(strlen(chunk_1_http_request), request->payload->length, "Payload node (1) length check failed");
@@ -283,10 +282,10 @@ void test_request_parse_v1_single_chunk_with_options()
     TEST_ASSERT_EQUAL_MESSAGE(1234568, request->request_id, "Request ID check failed");
     TEST_ASSERT_EQUAL_MESSAGE(strlen(http_request), request->received_length, "Received length check failed");
     TEST_ASSERT_EQUAL_MESSAGE(strlen(http_request), request->payload_length, "Payload length check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(FF_REQUEST_OPTION_TYPE_CHECKSUM, request->options->type, "Option type check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(3, request->options->length, "Option length check failed");
-    TEST_ASSERT_EQUAL_STRING_LEN_MESSAGE("abc", request->options->value, request->options->length, "Option value check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(NULL, request->options->next, "Option next check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(1, request->options_length, "Options length check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(FF_REQUEST_OPTION_TYPE_CHECKSUM, request->options[0]->type, "Option (1) type check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(3, request->options[0]->length, "Option (1) length check failed");
+    TEST_ASSERT_EQUAL_STRING_LEN_MESSAGE("abc", request->options[0]->value, request->options[0]->length, "Option value check failed");
     TEST_ASSERT_EQUAL_MESSAGE(0, request->payload->offset, "Payload node offset check failed");
     TEST_ASSERT_EQUAL_MESSAGE(strlen(http_request), request->payload->length, "Payload node length check failed");
     TEST_ASSERT_EQUAL_STRING_LEN_MESSAGE(http_request, request->payload->value, request->payload->length, "Payload node value check failed");

@@ -14,7 +14,6 @@ struct ff_request_option_node *ff_request_option_node_alloc()
     option->type = 0;
     option->length = 0;
     option->value = NULL;
-    option->next = NULL;
 
     return option;
 }
@@ -77,6 +76,7 @@ struct ff_request *ff_request_alloc()
     request->version = 0;
     request->request_id = 0;
     request->source_address_type = 0;
+    request->options_length = 0;
     request->options = NULL;
     request->payload_length = 0;
     request->received_length = 0;
@@ -90,15 +90,12 @@ void ff_request_free(struct ff_request *request)
     if (request == NULL)
         return;
 
-    struct ff_request_option_node *option_node = request->options;
-    struct ff_request_option_node *option_prev;
-
-    while (option_node != NULL)
+    for (int i = 0; i < request->options_length; i++)
     {
-        option_prev = option_node;
-        option_node = option_node->next;
-        ff_request_option_node_free(option_prev);
+        ff_request_option_node_free(request->options[i]);
     }
+
+    FREE(request->options);
 
     struct ff_request_payload_node *payload_node = request->payload;
     struct ff_request_payload_node *payload_prev;
@@ -224,13 +221,22 @@ void ff_request_parse_data_chunk(struct ff_request *request, uint32_t buff_size,
         return;
     }
 
+    // Only first request can contain options
     if (header->chunk_offset == 0)
     {
         // Parse TLV options
-        struct ff_request_option_node *prev_option = NULL;
-        struct ff_request_option_node *option = NULL;
+        struct ff_request_option_node *options[FF_REQUEST_MAX_OPTIONS];
+        int options_i = 0;
+
         while (1)
         {
+            if (options_i >= FF_REQUEST_MAX_OPTIONS)
+            {
+                ff_log(FF_WARNING, "Encountered request with too many options");
+                request->state = FF_REQUEST_STATE_RECEIVED_FAIL;
+                return;
+            }
+
             if (buff_size < i + sizeof(struct __raw_ff_request_option_header))
             {
                 ff_log(FF_WARNING, "Packet buffer ran out while processing TLV options");
@@ -254,25 +260,23 @@ void ff_request_parse_data_chunk(struct ff_request *request, uint32_t buff_size,
                 return;
             }
 
-            option = ff_request_option_node_alloc();
-            option->type = option_header->type;
-            option->length = option_header->length;
+            options[options_i] = ff_request_option_node_alloc();
+            options[options_i]->type = option_header->type;
+            options[options_i]->length = option_header->length;
             ff_request_option_load_buff(
-                option,
+                options[options_i],
                 option_header->length,
                 buff + i);
 
             i += option_header->length;
+            options_i++;
+        }
 
-            if (prev_option == NULL)
-            {
-                request->options = option;
-            }
-            else
-            {
-                prev_option->next = option;
-                prev_option = option;
-            }
+        request->options_length = options_i;
+        if (options_i != 0)
+        {
+            request->options = malloc(sizeof(struct ff_request_option_node *) * options_i);
+            memcpy(request->options, options, sizeof(struct ff_request_option_node *) * options_i);
         }
     }
     else

@@ -3,6 +3,8 @@
 #ifndef FF_PARSER_H
 #define FF_PARSER_H
 
+#define FF_REQUEST_MAX_OPTIONS 10
+
 enum ff_request_state {
     FF_REQUEST_STATE_RECEIVING = 0,
     FF_REQUEST_STATE_RECEIVED = 1,
@@ -34,7 +36,6 @@ struct ff_request_option_node {
     enum ff_request_option_type type;
     uint16_t length;
     char* value;
-    struct ff_request_option_node* next;
 };
 
 union ff_source_address {
@@ -55,7 +56,8 @@ struct ff_request {
     uint16_t source_address_type;
     uint64_t request_id;
     union ff_source_address source_address;
-    struct ff_request_option_node* options;
+    uint8_t options_length;
+    struct ff_request_option_node** options;
     uint64_t payload_length;
     uint64_t received_length;
     struct ff_request_payload_node* payload;
