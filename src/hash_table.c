@@ -40,18 +40,14 @@ union ff_hash_table_bucket *ff_hash_table_get_or_create_bucket(
 {
     union ff_hash_table_bucket *buckets = hash_table->buckets;
     uint8_t hash;
-    printf("item_id: %llu\n", item_id);
 
     for (uint8_t level = 0; level < hash_table->bucket_levels - 1; level++)
     {
         hash = FF_HASH_GET_FOR_LEVEL(item_id, level);
 
-        printf("buckets: %d\n", (int)buckets);
-        printf("hash: %d\n", (int)hash);
 
         if (buckets[hash].buckets == NULL)
         {
-            printf("init: %d\n", (int)hash);
             if (!should_create)
             {
                 return NULL;
@@ -59,10 +55,8 @@ union ff_hash_table_bucket *ff_hash_table_get_or_create_bucket(
 
             // Init new layer
             buckets[hash].buckets = ff_hash_table_init_bucket();
-            printf("post init: %d\n", (int)buckets[hash].buckets);
         }
 
-        printf("get\n");
         buckets = buckets[hash].buckets;
 
         if (buckets_list != NULL)
@@ -107,9 +101,6 @@ void ff_hash_table_put_item(struct ff_hash_table *hash_table, uint64_t item_id, 
     if (buckets->nodes == NULL)
     {
 
-        printf("buckets->nodes == NULL\n");
-        printf("item_id: %llu\n", item_id);
-        printf("value: %llu\n", (unsigned long long)item);
         buckets->nodes = (struct ff_hash_table_node *)malloc(sizeof(struct ff_hash_table_node));
         buckets->nodes->next = NULL;
         buckets->nodes->item_id = item_id;
@@ -164,7 +155,6 @@ void ff_hash_table_remove_item(struct ff_hash_table *hash_table, uint64_t item_i
     {
         if (node->item_id == item_id)
         {
-            printf("rm: %llu\n", node);
             if (prev_node != NULL)
             {
                 prev_node->next = node->next;
@@ -175,7 +165,6 @@ void ff_hash_table_remove_item(struct ff_hash_table *hash_table, uint64_t item_i
             }
 
             hash_table->length--;
-            printf("free: %llu\n", node);
             FREE(node);
             break;
         }
@@ -184,7 +173,6 @@ void ff_hash_table_remove_item(struct ff_hash_table *hash_table, uint64_t item_i
         node = node->next;
     }
 
-    printf("fin rm\n");
     if (buckets->nodes == NULL)
     {
         // Walk back up tree clearing unused buckets
@@ -193,9 +181,6 @@ void ff_hash_table_remove_item(struct ff_hash_table *hash_table, uint64_t item_i
             bool should_free = true;
             union ff_hash_table_bucket *bucket_level = bucket_list[level];
             uint8_t hash = FF_HASH_GET_FOR_LEVEL(item_id, level);
-            printf("level: %llu\n", level);
-            printf("bucket_level: %llu\n", bucket_level);
-            printf("hash: %d\n", hash);
 
             for (int i = 0; i <= FF_BUCKET_POOL_LENGTH; i++)
             {
@@ -236,8 +221,6 @@ void ff_hash_table_free_bucket_level(uint8_t bucket_levels, union ff_hash_table_
 {
     assert(bucket_levels > 0);
 
-    printf("bucket_levels: %d\n", bucket_levels);
-    printf("bucket: %d\n", bucket);
     if (bucket_levels > 1)
     {
         for (int i = 0; i < FF_BUCKET_POOL_LENGTH; i++)
@@ -256,13 +239,11 @@ void ff_hash_table_free_bucket_level(uint8_t bucket_levels, union ff_hash_table_
         {
             if (bucket[i].nodes != NULL)
             {
-                printf("free nodes\n");
                 struct ff_hash_table_node *node = bucket[i].nodes;
                 struct ff_hash_table_node *tmp_node = NULL;
 
                 while (node != NULL)
                 {
-                    printf("free node: %llu\n", node);
                     tmp_node = node;
                     node = node->next;
                     FREE(tmp_node);
