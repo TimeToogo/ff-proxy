@@ -54,11 +54,13 @@ void ff_decrypt_request(struct ff_request *request, struct ff_encryption_key *ke
     if (iv == NULL || iv_len == 0)
     {
         ff_log(FF_WARNING, "Encountered encrypted request with empty IV");
+        goto error;
     }
 
     if (tag == NULL || tag_len == 0)
     {
         ff_log(FF_WARNING, "Encountered encrypted request with empty encryption tag");
+        goto error;
     }
 
     switch (encryption_mode)
@@ -110,34 +112,38 @@ bool ff_decrypt_request_aes_256_gcm(
 {
     EVP_CIPHER_CTX *ctx;
     int len;
+    bool ret_val;
 
     uint8_t *plaintext_buff = (uint8_t *)malloc(request->payload_length * sizeof(uint8_t));
     int plaintext_len = 0;
     int ret;
     struct ff_request_payload_node *payload_chunk = request->payload;
 
+    unsigned char padded_key[32] = {0};
+    memcpy(padded_key, key->key, strlen((char*)key->key));
+
     if (!(ctx = EVP_CIPHER_CTX_new()))
     {
         ff_log(FF_ERROR, "Failed to create new OpenSSL cipher");
-        return false;
+        goto error;
     }
 
     if (!EVP_DecryptInit_ex(ctx, EVP_aes_256_gcm(), NULL, NULL, NULL))
     {
         ff_log(FF_ERROR, "Failed to init OpenSSL cipher");
-        return false;
+        goto error;
     }
 
     if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, iv_len, NULL))
     {
         ff_log(FF_ERROR, "Failed to update OpenSSL cipher - IV length");
-        return false;
+        goto error;
     }
 
-    if (!EVP_DecryptInit_ex(ctx, NULL, NULL, key->key, iv))
+    if (!EVP_DecryptInit_ex(ctx, NULL, NULL, padded_key, iv))
     {
         ff_log(FF_ERROR, "Failed to init OpenSSL cipher with key and IV");
-        return false;
+        goto error;
     }
 
     do
@@ -145,21 +151,20 @@ bool ff_decrypt_request_aes_256_gcm(
         if (!EVP_DecryptUpdate(ctx, plaintext_buff + plaintext_len, &len, payload_chunk->value, payload_chunk->length))
         {
             ff_log(FF_ERROR, "Failed decrypt request payload");
-            return false;
+            goto error;
         }
 
         plaintext_len += len;
+
     } while ((payload_chunk = payload_chunk->next) != NULL);
 
     if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, tag_len, tag))
     {
         ff_log(FF_ERROR, "Failed to set cipher tag");
-        return false;
+        goto error;
     }
 
     ret = EVP_DecryptFinal_ex(ctx, plaintext_buff + plaintext_len, &len);
-
-    EVP_CIPHER_CTX_free(ctx);
 
     if (ret > 0)
     {
@@ -181,11 +186,24 @@ bool ff_decrypt_request_aes_256_gcm(
         request->payload->offset = 0;
         request->payload->next = NULL;
         request->payload->value = plaintext_buff;
-        return true;
+        goto done;
     }
     else
     {
         ff_log(FF_ERROR, "Failed decrypt and finalize request payload");
-        return false;
+        goto error;
     }
+
+error:
+    FREE(plaintext_buff);
+    ret_val = false;
+    goto cleanup;
+
+done:
+    ret_val = true;
+    goto cleanup;
+
+cleanup:
+    EVP_CIPHER_CTX_free(ctx);
+    return ret_val;
 }

@@ -2,6 +2,7 @@
 #include "test_hello_world.c"
 #include "test_parser.c"
 #include "test_hash_table.c"
+#include "test_crypto.c"
 #include "test_logging.c"
 
 void setUp(void)
@@ -12,7 +13,8 @@ void tearDown(void)
 {
 }
 
-int main(void) {
+int main(void)
+{
     UNITY_BEGIN();
     RUN_TEST(test_hello_world);
 
@@ -43,6 +45,13 @@ int main(void) {
     RUN_TEST(test_hash_table_remove_item_last_in_bucket);
     RUN_TEST(test_hash_table_remove_item_first_in_bucket);
     RUN_TEST(test_hash_table_remove_item_different_buckets);
+
+    RUN_TEST(test_request_decrypt_with_unencrypted_request);
+    RUN_TEST(test_request_decrypt_with_unknown_encryption_mode);
+    RUN_TEST(test_request_decrypt_without_iv);
+    RUN_TEST(test_request_decrypt_without_tag);
+    RUN_TEST(test_request_decrypt_valid);
+    RUN_TEST(test_request_decrypt_invalid);
 
     RUN_TEST(test_log_debug);
     return UNITY_END();
