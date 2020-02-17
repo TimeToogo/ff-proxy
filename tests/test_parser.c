@@ -19,7 +19,7 @@ void test_request_option_node_free()
 {
     struct ff_request_option_node *option = ff_request_option_node_alloc();
 
-    option->value = (char *)malloc(10);
+    option->value = (uint8_t *)malloc(10);
 
     ff_request_option_node_free(option);
 
@@ -43,7 +43,7 @@ void test_request_payload_node_free()
     struct ff_request_payload_node *node = ff_request_payload_node_alloc();
     void *next_node;
 
-    node->value = (char *)malloc(10);
+    node->value = (uint8_t *)malloc(10);
     next_node = node->next = (void *)malloc(10);
 
     ff_request_payload_node_free(node);
@@ -80,7 +80,7 @@ void test_request_free()
     struct ff_request_payload_node *node_b = ff_request_payload_node_alloc();
     node_a->next = node_b;
 
-    request->options = malloc(sizeof(struct ff_request_option_node*) * 2);
+    request->options = malloc(sizeof(struct ff_request_option_node *) * 2);
     request->options_length = 2;
     request->options[0] = option_a;
     request->options[1] = option_b;
@@ -136,17 +136,15 @@ void test_request_parse_v1_single_chunk()
         .request_id = 1234568,
         .total_length = strlen(http_request),
         .chunk_offset = 0,
-        .chunk_length = strlen(http_request)
-    };
-    
+        .chunk_length = strlen(http_request)};
+
     struct __raw_ff_request_option_header eol_option = {
         .type = FF_REQUEST_OPTION_TYPE_EOL,
-        .length = 0
-    };
+        .length = 0};
 
     int chunk_length = sizeof(header) + sizeof(eol_option) + strlen(http_request);
 
-    char *raw_chunk = (char*)malloc(chunk_length);
+    char *raw_chunk = (char *)malloc(chunk_length);
     memcpy(raw_chunk, &header, (int)sizeof(header));
     memcpy(raw_chunk + sizeof(header), &eol_option, (int)sizeof(eol_option));
     memcpy(raw_chunk + sizeof(eol_option) + sizeof(header), http_request, strlen(http_request));
@@ -175,36 +173,37 @@ void test_request_parse_v1_multiple_chunks()
     char *chunk_1_http_request = "POST / HTTP/1.1\nHost: stackoverflow.com\n\n";
     char *chunk_2_http_request = "Some\nBody\nData";
 
+    char *full_http_request = calloc(1, strlen(chunk_1_http_request) + strlen(chunk_2_http_request) + 1);
+    strcat(full_http_request, chunk_1_http_request);
+    strcat(full_http_request, chunk_2_http_request);
+
     struct __raw_ff_request_header chunk_1_header = {
         .version = FF_VERSION_1,
         .request_id = 1234568,
         .total_length = strlen(chunk_1_http_request) + strlen(chunk_2_http_request),
         .chunk_offset = 0,
-        .chunk_length = strlen(chunk_1_http_request)
-    };
+        .chunk_length = strlen(chunk_1_http_request)};
 
     struct __raw_ff_request_header chunk_2_header = {
         .version = FF_VERSION_1,
         .request_id = 1234568,
         .total_length = strlen(chunk_1_http_request) + strlen(chunk_2_http_request),
         .chunk_offset = strlen(chunk_1_http_request),
-        .chunk_length = strlen(chunk_2_http_request)
-    };
-    
+        .chunk_length = strlen(chunk_2_http_request)};
+
     struct __raw_ff_request_option_header eol_option = {
         .type = FF_REQUEST_OPTION_TYPE_EOL,
-        .length = 0
-    };
+        .length = 0};
 
     int chunk_1_length = sizeof(chunk_1_header) + sizeof(eol_option) + strlen(chunk_1_http_request);
     int chunk_2_length = sizeof(chunk_2_header) + sizeof(eol_option) + strlen(chunk_2_http_request);
 
-    char *raw_chunk_1 = (char*)malloc(chunk_1_length);
+    char *raw_chunk_1 = (char *)malloc(chunk_1_length);
     memcpy(raw_chunk_1, &chunk_1_header, (int)sizeof(chunk_1_header));
     memcpy(raw_chunk_1 + sizeof(chunk_1_header), &eol_option, (int)sizeof(eol_option));
     memcpy(raw_chunk_1 + sizeof(chunk_1_header) + sizeof(eol_option), chunk_1_http_request, strlen(chunk_1_http_request));
 
-    char *raw_chunk_2 = (char*)malloc(chunk_2_length);
+    char *raw_chunk_2 = (char *)malloc(chunk_2_length);
     memcpy(raw_chunk_2, &chunk_2_header, (int)sizeof(chunk_2_header));
     memcpy(raw_chunk_2 + sizeof(chunk_2_header), &eol_option, (int)sizeof(eol_option));
     memcpy(raw_chunk_2 + sizeof(chunk_2_header) + sizeof(eol_option), chunk_2_http_request, strlen(chunk_2_http_request));
@@ -223,18 +222,16 @@ void test_request_parse_v1_multiple_chunks()
     TEST_ASSERT_EQUAL_MESSAGE(0, request->options_length, "Options length check failed");
     TEST_ASSERT_EQUAL_MESSAGE(NULL, request->options, "Options check failed");
     TEST_ASSERT_EQUAL_MESSAGE(0, request->payload->offset, "Payload node (1) offset check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(strlen(chunk_1_http_request), request->payload->length, "Payload node (1) length check failed");
-    TEST_ASSERT_EQUAL_STRING_LEN_MESSAGE(chunk_1_http_request, request->payload->value, request->payload->length, "Payload node (1) value check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(strlen(chunk_1_http_request), request->payload->next->offset, "Payload node (2) offset check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(strlen(chunk_2_http_request), request->payload->next->length, "Payload node (2) length check failed");
-    TEST_ASSERT_EQUAL_STRING_LEN_MESSAGE(chunk_2_http_request, request->payload->next->value, request->payload->next->length, "Payload node (2) value check failed");
+
+    TEST_ASSERT_EQUAL_MESSAGE(strlen(chunk_1_http_request) + strlen(chunk_2_http_request), request->payload->length, "Payload node (1) length check failed");
+    TEST_ASSERT_EQUAL_STRING_LEN_MESSAGE(full_http_request, request->payload->value, request->payload->length, "Payload node (1) value check failed");
 
     ff_request_free(request);
 
     FREE(raw_chunk_1);
     FREE(raw_chunk_2);
+    FREE(full_http_request);
 }
-
 
 void test_request_parse_v1_single_chunk_with_options()
 {
@@ -245,22 +242,19 @@ void test_request_parse_v1_single_chunk_with_options()
         .request_id = 1234568,
         .total_length = strlen(http_request),
         .chunk_offset = 0,
-        .chunk_length = strlen(http_request)
-    };
-    
+        .chunk_length = strlen(http_request)};
+
     struct __raw_ff_request_option_header checksum_option = {
-        .type = FF_REQUEST_OPTION_TYPE_CHECKSUM,
-        .length = 3
-    };
-    
+        .type = FF_REQUEST_OPTION_TYPE_ENCRYPTION_IV,
+        .length = 3};
+
     struct __raw_ff_request_option_header eol_option = {
         .type = FF_REQUEST_OPTION_TYPE_EOL,
-        .length = 0
-    };
+        .length = 0};
 
     int chunk_length = sizeof(header) + sizeof(checksum_option) + 3 + sizeof(eol_option) + strlen(http_request);
 
-    void *raw_chunk = (char*)malloc(chunk_length);
+    void *raw_chunk = (char *)malloc(chunk_length);
     void *chunk_ptr = raw_chunk;
 
     memcpy(chunk_ptr, &header, (int)sizeof(header));
@@ -283,7 +277,7 @@ void test_request_parse_v1_single_chunk_with_options()
     TEST_ASSERT_EQUAL_MESSAGE(strlen(http_request), request->received_length, "Received length check failed");
     TEST_ASSERT_EQUAL_MESSAGE(strlen(http_request), request->payload_length, "Payload length check failed");
     TEST_ASSERT_EQUAL_MESSAGE(1, request->options_length, "Options length check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(FF_REQUEST_OPTION_TYPE_CHECKSUM, request->options[0]->type, "Option (1) type check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(FF_REQUEST_OPTION_TYPE_ENCRYPTION_IV, request->options[0]->type, "Option (1) type check failed");
     TEST_ASSERT_EQUAL_MESSAGE(3, request->options[0]->length, "Option (1) length check failed");
     TEST_ASSERT_EQUAL_STRING_LEN_MESSAGE("abc", request->options[0]->value, request->options[0]->length, "Option value check failed");
     TEST_ASSERT_EQUAL_MESSAGE(0, request->payload->offset, "Payload node offset check failed");

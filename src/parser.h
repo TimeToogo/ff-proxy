@@ -5,19 +5,24 @@
 
 #define FF_REQUEST_MAX_OPTIONS 10
 
-enum ff_request_state {
+enum ff_request_state
+{
     FF_REQUEST_STATE_RECEIVING = 0,
     FF_REQUEST_STATE_RECEIVED = 1,
-    FF_REQUEST_STATE_RECEIVED_FAIL = 2,
+    FF_REQUEST_STATE_RECEIVING_FAIL = 2,
     FF_REQUEST_STATE_DECRYPTING = 3,
     FF_REQUEST_STATE_DECRYPTED = 4,
-    FF_REQUEST_STATE_VERIFYING = 5,
-    FF_REQUEST_STATE_VERIFIED = 6,
-    FF_REQUEST_STATE_SENDING = 7,
-    FF_REQUEST_STATE_SENT = 8
+    FF_REQUEST_STATE_DECRYPTING_FAILED = 5,
+    FF_REQUEST_STATE_VERIFYING = 6,
+    FF_REQUEST_STATE_VERIFIED = 7,
+    FF_REQUEST_STATE_VERIFYING_FAILED = 8,
+    FF_REQUEST_STATE_SENDING = 9,
+    FF_REQUEST_STATE_SENT = 10,
+    FF_REQUEST_STATE_SENDING_FAILED = 11,
 };
 
-enum ff_request_version {
+enum ff_request_version
+{
     // Support for proxying a RAW HTTP request
     FF_VERSION_RAW = -1,
     // Ensure that version numbers do not overlap 'A' (65) to 'Z' (90)
@@ -26,16 +31,19 @@ enum ff_request_version {
     FF_VERSION_1 = 1
 };
 
-enum ff_request_option_type {
+enum ff_request_option_type
+{
     FF_REQUEST_OPTION_TYPE_EOL = 0,
-    FF_REQUEST_OPTION_TYPE_CHECKSUM = 1,
-    FF_REQUEST_OPTION_TYPE_ENCRYPTED = 2
+    FF_REQUEST_OPTION_TYPE_ENCRYPTION_MODE = 1,
+    FF_REQUEST_OPTION_TYPE_ENCRYPTION_IV = 2,
+    FF_REQUEST_OPTION_TYPE_ENCRYPTION_TAG = 3
 };
 
-struct ff_request_option_node {
+struct ff_request_option_node
+{
     enum ff_request_option_type type;
     uint16_t length;
-    char* value;
+    uint8_t *value;
 };
 
 union ff_source_address {
@@ -43,61 +51,67 @@ union ff_source_address {
     struct in6_addr ipv6;
 };
 
-struct ff_request_payload_node {
+struct ff_request_payload_node
+{
     uint16_t offset;
     uint16_t length;
-    char* value;
-    struct ff_request_payload_node* next;
+    uint8_t *value;
+    struct ff_request_payload_node *next;
 };
 
-struct ff_request {
+struct ff_request
+{
     enum ff_request_state state;
     enum ff_request_version version;
     uint16_t source_address_type;
     uint64_t request_id;
     union ff_source_address source_address;
     uint8_t options_length;
-    struct ff_request_option_node** options;
+    struct ff_request_option_node **options;
     uint64_t payload_length;
     uint64_t received_length;
-    struct ff_request_payload_node* payload;
+    struct ff_request_payload_node *payload;
 };
 
-struct __raw_ff_request_header {
+struct __raw_ff_request_header
+{
     uint16_t version;
     uint64_t request_id;
     uint32_t total_length;
     uint16_t chunk_offset;
     uint16_t chunk_length;
-} __attribute__ ((packed));
+} __attribute__((packed));
 
-struct __raw_ff_request_option_header {
+struct __raw_ff_request_option_header
+{
     uint8_t type;
     uint16_t length;
-} __attribute__ ((packed));
+} __attribute__((packed));
 
-struct ff_request_option_node* ff_request_option_node_alloc(void);
+struct ff_request_option_node *ff_request_option_node_alloc(void);
 
-void ff_request_option_load_buff(struct ff_request_option_node* node, uint32_t buff_size, void* buff);
+void ff_request_option_load_buff(struct ff_request_option_node *node, uint32_t buff_size, void *buff);
 
-void ff_request_option_node_free(struct ff_request_option_node*);
+void ff_request_option_node_free(struct ff_request_option_node *);
 
-struct ff_request_payload_node* ff_request_payload_node_alloc(void);
+struct ff_request_payload_node *ff_request_payload_node_alloc(void);
 
-void ff_request_payload_load_buff(struct ff_request_payload_node* node, uint32_t buff_size, void* buff);
+void ff_request_payload_load_buff(struct ff_request_payload_node *node, uint32_t buff_size, void *buff);
 
-void ff_request_payload_node_free(struct ff_request_payload_node*);
+void ff_request_payload_node_free(struct ff_request_payload_node *);
 
-struct ff_request* ff_request_alloc(void);
+struct ff_request *ff_request_alloc(void);
 
-void ff_request_free(struct ff_request*);
+void ff_request_free(struct ff_request *);
 
-void ff_request_parse_chunk(struct ff_request* request, uint32_t buff_size, void* buff);
+void ff_request_parse_chunk(struct ff_request *request, uint32_t buff_size, void *buff);
 
-void ff_request_parse_first_chunk(struct ff_request* request, uint32_t buff_size, void* buff);
+void ff_request_parse_first_chunk(struct ff_request *request, uint32_t buff_size, void *buff);
 
-void ff_request_parse_raw_http(struct ff_request* request, uint32_t buff_size, void* buff);
+void ff_request_parse_raw_http(struct ff_request *request, uint32_t buff_size, void *buff);
 
-void ff_request_parse_data_chunk(struct ff_request* request, uint32_t buff_size, void* buff);
+void ff_request_parse_data_chunk(struct ff_request *request, uint32_t buff_size, void *buff);
+
+void ff_request_vectorise_payload(struct ff_request *request);
 
 #endif

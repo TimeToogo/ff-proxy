@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <math.h>
 #include <assert.h>
 #include "alloc.h"
@@ -44,7 +45,6 @@ union ff_hash_table_bucket *ff_hash_table_get_or_create_bucket(
     for (uint8_t level = 0; level < hash_table->bucket_levels - 1; level++)
     {
         hash = FF_HASH_GET_FOR_LEVEL(item_id, level);
-
 
         if (buckets[hash].buckets == NULL)
         {
@@ -144,7 +144,7 @@ void ff_hash_table_remove_item(struct ff_hash_table *hash_table, uint64_t item_i
 
     if (buckets == NULL || buckets->nodes == NULL)
     {
-        return;
+        goto cleanup;
     }
 
     // Find last node or matching in chain
@@ -208,6 +208,9 @@ void ff_hash_table_remove_item(struct ff_hash_table *hash_table, uint64_t item_i
             }
         }
     }
+
+cleanup:
+    FREE(bucket_list);
 }
 
 void ff_hash_table_free(struct ff_hash_table *hash_table)
@@ -250,5 +253,7 @@ void ff_hash_table_free_bucket_level(uint8_t bucket_levels, union ff_hash_table_
                 }
             }
         }
+
+        FREE(bucket);
     }
 }

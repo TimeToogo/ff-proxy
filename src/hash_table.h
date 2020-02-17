@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdint.h>
 #include <stdbool.h>
 
 #ifndef FF_HASH_TABLE_H

@@ -9,10 +9,11 @@ LD=gcc
 CC=gcc
 
 CC_FLAGS=-Wall 
-LD_FLAGS=
+LD_FLAGS=-Wall 
+LIBS=-lssl -lcrypto
 
-build: server.o parser.o constants.o hash_table.o logging.o
-	$(LD) $(LD_FLAGS) -o build/server $(wildcard build/obj/*.o)
+build: server.o parser.o constants.o hash_table.o crypto.o logging.o 
+	$(LD) $(LD_FLAGS) -o build/server $(wildcard build/obj/*.o) $(LIBS)
 
 parser.o: src/parser.c
 	$(CC) $(CC_FLAGS) -c $< -o build/obj/$@
@@ -29,14 +30,17 @@ hash_table.o: src/hash_table.c
 logging.o: src/logging.c
 	$(CC) $(CC_FLAGS) -c $< -o build/obj/$@
 
+crypto.o: src/crypto.c
+	$(CC) $(CC_FLAGS) -c $< -o build/obj/$@
+
 test_build: build
-	$(CC) $(CC_FLAGS) -o build/tests $(filter-out build/obj/server.o, $(wildcard build/obj/*.o)) tests/include/*.c tests/run.c
+	$(LD) $(LD_FLAGS) -o build/tests $(filter-out build/obj/server.o, $(wildcard build/obj/*.o)) tests/include/*.c tests/run.c $(LIBS)
 
 test: test_build
 	build/tests
 
 valgrind: test_build
-	valgrind --tool=memcheck --leak-check=full --num-callers=100 build/tests
+	valgrind --tool=memcheck --leak-check=full  --num-callers=100 build/tests
 
 clean:
 	rm -f build/obj/*.o

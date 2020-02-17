@@ -182,7 +182,6 @@ void test_hash_table_put_item_multiple_same_bucket()
 void test_hash_table_remove_item_non_existant()
 {
     uint64_t item_id = 0x010201;
-    int item_val = 123;
 
     struct ff_hash_table *hash_table = ff_hash_table_init(16);
 
