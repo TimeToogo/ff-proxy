@@ -1,5 +1,6 @@
 #include "include/unity.h"
 #include "test_hello_world.c"
+#include "test_request.c"
 #include "test_parser.c"
 #include "test_hash_table.c"
 #include "test_crypto.c"
@@ -24,6 +25,7 @@ int main(void)
     RUN_TEST(test_request_payload_node_free);
     RUN_TEST(test_request_alloc);
     RUN_TEST(test_request_free);
+    
     RUN_TEST(test_request_parse_raw_http_get);
     RUN_TEST(test_request_parse_raw_http_post);
     RUN_TEST(test_request_parse_v1_single_chunk);

@@ -12,8 +12,11 @@ CC_FLAGS=-Wall
 LD_FLAGS=-Wall 
 LIBS=-lssl -lcrypto
 
-build: server.o parser.o constants.o hash_table.o crypto.o logging.o 
+build: server.o request.o parser.o constants.o hash_table.o crypto.o logging.o 
 	$(LD) $(LD_FLAGS) -o build/server $(wildcard build/obj/*.o) $(LIBS)
+
+request.o: src/request.c
+	$(CC) $(CC_FLAGS) -c $< -o build/obj/$@
 
 parser.o: src/parser.c
 	$(CC) $(CC_FLAGS) -c $< -o build/obj/$@

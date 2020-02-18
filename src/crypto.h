@@ -1,5 +1,6 @@
 #include <stdbool.h>
 #include "parser.h"
+#include "request.h"
 
 #ifndef FF_CRYPTO_H
 #define FF_CRYPTO_H
