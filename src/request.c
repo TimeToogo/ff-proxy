@@ -75,7 +75,7 @@ struct ff_request *ff_request_alloc()
     request->state = FF_REQUEST_STATE_RECEIVING;
     request->version = 0;
     request->request_id = 0;
-    request->source_address_type = 0;
+    request->source.type = 0;
     request->options_length = 0;
     request->options = NULL;
     request->payload_length = 0;

@@ -4,6 +4,7 @@
 #include "test_parser.c"
 #include "test_hash_table.c"
 #include "test_crypto.c"
+#include "test_http.c"
 #include "test_logging.c"
 
 void setUp(void)
@@ -25,7 +26,7 @@ int main(void)
     RUN_TEST(test_request_payload_node_free);
     RUN_TEST(test_request_alloc);
     RUN_TEST(test_request_free);
-    
+
     RUN_TEST(test_request_parse_raw_http_get);
     RUN_TEST(test_request_parse_raw_http_post);
     RUN_TEST(test_request_parse_v1_single_chunk);
@@ -54,6 +55,13 @@ int main(void)
     RUN_TEST(test_request_decrypt_without_tag);
     RUN_TEST(test_request_decrypt_valid);
     RUN_TEST(test_request_decrypt_invalid);
+
+    RUN_TEST(test_http_get_host_valid_reqest);
+    RUN_TEST(test_http_get_host_empty_reqest);
+    RUN_TEST(test_http_get_host_no_host_header);
+    RUN_TEST(test_http_get_host_host_in_body);
+    RUN_TEST(test_http_get_host_multiple_headers);
+    RUN_TEST(test_http_unencrypted_google);
 
     RUN_TEST(test_log_debug);
     return UNITY_END();

@@ -35,7 +35,8 @@ enum ff_request_option_type
     FF_REQUEST_OPTION_TYPE_EOL = 0,
     FF_REQUEST_OPTION_TYPE_ENCRYPTION_MODE = 1,
     FF_REQUEST_OPTION_TYPE_ENCRYPTION_IV = 2,
-    FF_REQUEST_OPTION_TYPE_ENCRYPTION_TAG = 3
+    FF_REQUEST_OPTION_TYPE_ENCRYPTION_TAG = 3,
+    FF_REQUEST_OPTION_TYPE_HTTPS = 4
 };
 
 struct ff_request_option_node
@@ -45,9 +46,14 @@ struct ff_request_option_node
     uint8_t *value;
 };
 
-union ff_source_address {
-    struct in_addr ipv4;
-    struct in6_addr ipv6;
+struct ff_ip_address {
+    // Either AF_INET or AF_INET6
+    uint16_t type;
+
+    union {
+        struct in_addr ipv4;
+        struct in6_addr ipv6;
+    } address;
 };
 
 struct ff_request_payload_node
@@ -62,9 +68,8 @@ struct ff_request
 {
     enum ff_request_state state;
     enum ff_request_version version;
-    uint16_t source_address_type;
+    struct ff_ip_address source;
     uint64_t request_id;
-    union ff_source_address source_address;
     uint8_t options_length;
     struct ff_request_option_node **options;
     uint64_t payload_length;
