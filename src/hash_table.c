@@ -15,7 +15,7 @@ struct ff_hash_table *ff_hash_table_init(uint8_t prefix_bit_length)
 {
     assert(prefix_bit_length > 0);
 
-    struct ff_hash_table *hash_table = (struct ff_hash_table *)malloc(sizeof(struct ff_hash_table *));
+    struct ff_hash_table *hash_table = (struct ff_hash_table *)malloc(sizeof(struct ff_hash_table));
 
     hash_table->length = 0;
     *(uint8_t *)&hash_table->prefix_bit_length = prefix_bit_length;
