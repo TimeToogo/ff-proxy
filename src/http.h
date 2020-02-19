@@ -14,6 +14,9 @@ bool ff_http_send_request_unencrypted(struct ff_request *request, char *host_nam
 
 bool ff_http_send_request_tls(struct ff_request *request, char *host_name);
 
+void init_openssl();
+
 char *ff_http_get_destination_host(struct ff_request *request);
+
 
 #endif

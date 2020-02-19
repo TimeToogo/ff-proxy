@@ -17,6 +17,8 @@ void tearDown(void)
 
 int main(void)
 {
+    init_openssl();
+    
     UNITY_BEGIN();
     RUN_TEST(test_hello_world);
 
@@ -57,13 +59,18 @@ int main(void)
     RUN_TEST(test_request_decrypt_invalid);
 
     RUN_TEST(test_http_get_host_valid_request);
+    RUN_TEST(test_http_get_host_valid_request_with_carriage);
     RUN_TEST(test_http_get_host_empty_request);
     RUN_TEST(test_http_get_host_no_host_header);
     RUN_TEST(test_http_get_host_host_in_body);
+    RUN_TEST(test_http_get_host_host_in_body_with_carriage);
     RUN_TEST(test_http_get_host_multiple_headers);
     RUN_TEST(test_http_unencrypted_google);
     RUN_TEST(test_http_unencrypted_google_connection_keep_alive);
     RUN_TEST(test_http_unencrypted_invalid_host);
+    RUN_TEST(test_http_tls_google);
+    RUN_TEST(test_http_tls_google_connection_keep_alive);
+    RUN_TEST(test_http_tls_invalid_host);
 
     RUN_TEST(test_log_debug);
     return UNITY_END();

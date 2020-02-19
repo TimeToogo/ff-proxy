@@ -5,9 +5,12 @@
 #include <stdlib.h>
 #include "server.h"
 #include "parser.h"
+#include "http.h"
 
 int main(int argc, char **argv)
 {
+    init_openssl();
+
     printf("Creating socket...\n");
 
     int sockfd = socket(AF_INET, SOCK_DGRAM, 0);

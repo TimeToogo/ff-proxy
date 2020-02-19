@@ -10,6 +10,9 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <math.h>
+#include <openssl/conf.h>
+#include <openssl/ssl.h>
+#include <openssl/err.h>
 #include "alloc.h"
 #include "http.h"
 #include "logging.h"
@@ -23,7 +26,7 @@ void ff_http_send_request(struct ff_request *request)
         switch (request->options[i]->type)
         {
         case FF_REQUEST_OPTION_TYPE_HTTPS:
-            https = request->options[i]->length == 1 && request->options[i]->value[0] == '1';
+            https = request->options[i]->length == 1 && request->options[i]->value[0] == 1;
             break;
 
         default:
@@ -194,8 +197,141 @@ cleanup:
 bool ff_http_send_request_tls(struct ff_request *request, char *host_name)
 {
     bool ret;
+    long res = 1;
 
-    goto error;
+    SSL_CTX *ctx = NULL;
+    X509_VERIFY_PARAM *param = NULL;
+    BIO *web = NULL;
+    SSL *ssl = NULL;
+    char error_string[256] = {0};
+
+    int chunk = 0;
+    int sent = 0;
+    int received = 0;
+    char response[FF_HTTP_RESPONSE_BUFF_SIZE] = {0};
+
+    const SSL_METHOD *method = SSLv23_method();
+    if (method == NULL)
+    {
+        ff_log(FF_ERROR, "Failed to initialise OpenSSL method");
+        goto error;
+    }
+
+    ctx = SSL_CTX_new(method);
+    if (ctx == NULL)
+    {
+        ff_log(FF_ERROR, "Failed to initialise OpenSSL context");
+        goto error;
+    }
+
+    SSL_CTX_load_verify_locations(ctx, "cacert-bundle.pem", NULL);
+
+    web = BIO_new_ssl_connect(ctx);
+
+    if (web == NULL)
+    {
+        ff_log(FF_ERROR, "Failed to initialise OpenSSL connection");
+        goto error;
+    }
+
+    res = BIO_set_conn_hostname(web, host_name);
+    res = BIO_set_conn_port(web, "443");
+    if (res != 1)
+    {
+        ff_log(FF_ERROR, "Failed to set OpenSSL connection host name");
+        goto error;
+    }
+
+    BIO_get_ssl(web, &ssl);
+    if (ssl == NULL)
+    {
+        ff_log(FF_ERROR, "Failed to set OpenSSL ssl");
+        goto error;
+    }
+
+    const char *const PREFERRED_CIPHERS = "HIGH:!aNULL:!kRSA:!PSK:!SRP:!MD5:!RC4";
+    res = SSL_set_cipher_list(ssl, PREFERRED_CIPHERS);
+    if (res != 1)
+    {
+        ff_log(FF_ERROR, "Failed to set OpenSSL preferred ciphers");
+        goto error;
+    }
+
+    res = SSL_set_tlsext_host_name(ssl, host_name);
+    if (res != 1)
+    {
+        ff_log(FF_ERROR, "Failed to set OpenSSL TLS host name");
+        goto error;
+    }
+
+    param = SSL_get0_param(ssl);
+    res = X509_VERIFY_PARAM_set1_host(param, host_name, strlen(host_name));
+    if (res != 1)
+    {
+        ff_log(FF_ERROR, "Failed to set OpenSSL param host name");
+        goto error;
+    }
+
+    SSL_set_verify(ssl, SSL_VERIFY_PEER, NULL);
+
+    res = BIO_do_connect(web);
+    if (res != 1)
+    {
+        ERR_error_string(ERR_get_error(), error_string);
+        ff_log(FF_WARNING, "Failed to perform OpenSSL request connection: %s", error_string);
+        goto error;
+    }
+
+    res = BIO_do_handshake(web);
+    if (res != 1)
+    {
+        ERR_error_string(ERR_get_error(), error_string);
+        ff_log(FF_WARNING, "Failed to perform OpenSSL request handshake: %s", error_string);
+        goto error;
+    }
+
+    X509 *cert = SSL_get_peer_certificate(ssl);
+    if (cert)
+    {
+        X509_free(cert);
+    }
+    if (cert == NULL)
+    {
+        ff_log(FF_WARNING, "Server did not present a certificate");
+        goto error;
+    }
+
+    res = SSL_get_verify_result(ssl);
+    if (res != X509_V_OK)
+    {
+        ERR_error_string(ERR_get_error(), error_string);
+        ff_log(FF_WARNING, "Server certificate could not be validated against CA: %s", error_string);
+        goto error;
+    }
+
+    do
+    {
+        chunk = BIO_write(web, request->payload->value + sent, request->payload_length - sent);
+        sent += chunk;
+    } while (chunk > 0);
+
+    ff_log(FF_DEBUG, "Finished sending request to %s (%d bytes sent)", host_name, sent);
+
+    do
+    {
+        chunk = BIO_read(web, response + received, sizeof(response) - received);
+
+        received += chunk;
+
+        if (received > 5 && strncasecmp(response, "http/", 5) == 0)
+        {
+            break;
+        }
+    } while (chunk > 0 || BIO_should_retry(web));
+
+    ff_log(FF_DEBUG, "Finished receiving response from %s (%d bytes received)", host_name, received);
+    size_t response_header_length = strchr((char *)response, '\n') - response;
+    ff_log(FF_DEBUG, "Response: %.*s", response_header_length > 100l ? 100 : response_header_length, response);
     goto done;
 
 error:
@@ -207,8 +343,28 @@ done:
     goto cleanup;
 
 cleanup:
+    if (web != NULL)
+    {
+        BIO_free_all(web);
+    }
+
+    if (ctx != NULL)
+    {
+        SSL_CTX_free(ctx);
+    }
 
     return ret;
+}
+
+void init_openssl()
+{
+    (void)SSL_library_init();
+
+    SSL_load_error_strings();
+
+    OpenSSL_add_all_algorithms();
+
+    OPENSSL_config(NULL);
 }
 
 char *ff_http_get_destination_host(struct ff_request *request)
@@ -234,13 +390,14 @@ char *ff_http_get_destination_host(struct ff_request *request)
         goto error;                                                                                  \
     }
 
-    if (payload_len == 0) {
+    if (payload_len == 0)
+    {
         FF_HTTP_DESTINATION_CONSUME_CHAR(1); // Force error
     }
 
     while (1)
     {
-        if (line != http_request && *line == '\n')
+        if (payload_len - i > 2 && line != http_request && (*line == '\n' || (*line == '\r' && *(line + 1) == '\n')))
         {
             // Subsequent new lines indicate request headers have finished
             ff_log(FF_WARNING, "Encountered end of request headers before finding Host header");
