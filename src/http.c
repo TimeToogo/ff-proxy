@@ -31,23 +31,56 @@ void ff_http_send_request(struct ff_request *request)
         }
     }
 
+    char *host_name = ff_http_get_destination_host(request);
+    bool success = false;
+
+    if (host_name == NULL)
+    {
+        goto error;
+    }
+
     if (https)
     {
-        ff_http_send_request_tls(request);
+        success = ff_http_send_request_tls(request, host_name);
     }
     else
     {
-        ff_http_send_request_unencrypted(request);
+        success = ff_http_send_request_unencrypted(request, host_name);
     }
+
+    if (success)
+    {
+        goto done;
+    }
+    else
+    {
+        goto error;
+    }
+
+error:
+    request->state = FF_REQUEST_STATE_SENDING_FAILED;
+    goto cleanup;
+
+done:
+    request->state = FF_REQUEST_STATE_SENT;
+    goto cleanup;
+
+cleanup:
+    if (host_name != NULL)
+    {
+        FREE(host_name);
+    }
+
+    return;
 }
 
-void ff_http_send_request_unencrypted(struct ff_request *request)
+bool ff_http_send_request_unencrypted(struct ff_request *request, char *host_name)
 {
-    char *host_name = ff_http_get_destination_host(request);
+    bool ret;
     struct hostent *host_entry = NULL;
     struct sockaddr_in host_address;
     char formatted_address[INET6_ADDRSTRLEN] = {0};
-    struct timeval timeout = {.tv_sec = 1, .tv_usec = 0};
+    struct timeval timeout = {.tv_sec = FF_HTTP_RESPONSE_MAX_WAIT_SECS, .tv_usec = 0};
     int sockfd = 0;
     int chunk = 0;
     int sent = 0;
@@ -66,7 +99,7 @@ void ff_http_send_request_unencrypted(struct ff_request *request)
         ff_log(FF_ERROR, "Failed to open socket");
         goto error;
     }
-    
+
     setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (void *)&timeout, sizeof(timeout));
 
     host_entry = gethostbyname(host_name);
@@ -81,6 +114,8 @@ void ff_http_send_request_unencrypted(struct ff_request *request)
     host_address.sin_family = AF_INET;
     host_address.sin_port = htons(80);
     memcpy(&host_address.sin_addr.s_addr, host_entry->h_addr_list[0], host_entry->h_length);
+
+    // TODO: filter out private IP ranges
 
     inet_ntop(AF_INET, &host_address.sin_addr, formatted_address, INET_ADDRSTRLEN);
     ff_log(FF_DEBUG, "Resolved host %s to ip address %s", host_name, formatted_address);
@@ -113,11 +148,11 @@ void ff_http_send_request_unencrypted(struct ff_request *request)
 
     do
     {
-        chunk = read(sockfd, response + received, sizeof(response) - received - 1);
+        chunk = recv(sockfd, response + received, sizeof(response) - received - 1, 0);
 
         if (chunk < 0)
         {
-            ff_log(FF_WARNING, "Failed to read response from socket for host: %d (%d bytes received)", host_name, received);
+            ff_log(FF_WARNING, "Failed to read response from socket for host: %s (%d bytes received)", host_name, received);
             goto error;
         }
 
@@ -127,35 +162,53 @@ void ff_http_send_request_unencrypted(struct ff_request *request)
         }
 
         received += chunk;
+
+        if (received > 0 && strncasecmp(response, "HTTP/", 5) == 0)
+        {
+            break;
+        }
     } while (received < sizeof(response) - 1);
 
     ff_log(FF_DEBUG, "Finished receiving response from %s (%d bytes received)", host_name, received);
-    ff_log(FF_DEBUG, "Response: %.*s", (int)fminl(strchr((char *)response, '\n') - response, 100l), response);
+    size_t response_header_length = strchr((char *)response, '\n') - response;
+    ff_log(FF_DEBUG, "Response: %.*s", response_header_length > 100l ? 100 : (int)response_header_length, response);
     goto done;
 
 error:
-    request->state = FF_REQUEST_STATE_SENDING_FAILED;
+    ret = false;
     goto cleanup;
 
 done:
-    request->state = FF_REQUEST_STATE_SENT;
+    ret = true;
     goto cleanup;
 
 cleanup:
-    if (host_name != NULL)
+    if (sockfd != 0)
     {
-        FREE(host_name);
-    }
-
-    if (sockfd != 0) {
         close(sockfd);
     }
 
-    return;
+    return ret;
 }
 
-void ff_http_send_request_tls(struct ff_request *request)
+bool ff_http_send_request_tls(struct ff_request *request, char *host_name)
 {
+    bool ret;
+
+    goto error;
+    goto done;
+
+error:
+    ret = false;
+    goto cleanup;
+
+done:
+    ret = true;
+    goto cleanup;
+
+cleanup:
+
+    return ret;
 }
 
 char *ff_http_get_destination_host(struct ff_request *request)
@@ -164,12 +217,13 @@ char *ff_http_get_destination_host(struct ff_request *request)
     char *host_name = (char *)malloc(_POSIX_HOST_NAME_MAX + 1);
     char *http_request = (char *)request->payload->value;
     char *line = http_request;
-    int i = 0;
+    uint64_t payload_len = request->payload_length;
+    uint64_t i = 0;
 
 #define FF_HTTP_DESTINATION_CONSUME_CHAR(x)                                                          \
     line += (x);                                                                                     \
     i += (x);                                                                                        \
-    if (*line == '\0')                                                                               \
+    if (i > payload_len || *line == '\0')                                                            \
     {                                                                                                \
         ff_log(FF_WARNING, "Encountered end of request payload before finding Host header");         \
         goto error;                                                                                  \
@@ -178,6 +232,10 @@ char *ff_http_get_destination_host(struct ff_request *request)
     {                                                                                                \
         ff_log(FF_WARNING, "Reached char limit of request payload while searching for host header"); \
         goto error;                                                                                  \
+    }
+
+    if (payload_len == 0) {
+        FF_HTTP_DESTINATION_CONSUME_CHAR(1); // Force error
     }
 
     while (1)
@@ -189,7 +247,7 @@ char *ff_http_get_destination_host(struct ff_request *request)
             goto error;
         }
 
-        if (strncasecmp(line, "host:", 5) == 0)
+        if (payload_len - i > 5 && strncasecmp(line, "host:", 5) == 0)
         {
             FF_HTTP_DESTINATION_CONSUME_CHAR(5);
 
@@ -201,14 +259,15 @@ char *ff_http_get_destination_host(struct ff_request *request)
             int host_len = 0;
 
             // http://man7.org/linux/man-pages/man7/hostname.7.html
-            while ((*line == '.' || *line == '-' || isalnum(*line)) && host_len <= 255)
+            while (i <= payload_len && (*line == '.' || *line == '-' || isalnum(*line)) && host_len <= 255)
             {
                 *(host_name + host_len) = *line;
                 line++;
+                i++;
                 host_len++;
             }
 
-            *(host_name + host_len + 1) = '\0';
+            *(host_name + host_len) = '\0';
             goto done;
         }
 

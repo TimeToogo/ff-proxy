@@ -56,12 +56,14 @@ int main(void)
     RUN_TEST(test_request_decrypt_valid);
     RUN_TEST(test_request_decrypt_invalid);
 
-    RUN_TEST(test_http_get_host_valid_reqest);
-    RUN_TEST(test_http_get_host_empty_reqest);
+    RUN_TEST(test_http_get_host_valid_request);
+    RUN_TEST(test_http_get_host_empty_request);
     RUN_TEST(test_http_get_host_no_host_header);
     RUN_TEST(test_http_get_host_host_in_body);
     RUN_TEST(test_http_get_host_multiple_headers);
     RUN_TEST(test_http_unencrypted_google);
+    RUN_TEST(test_http_unencrypted_google_connection_keep_alive);
+    RUN_TEST(test_http_unencrypted_invalid_host);
 
     RUN_TEST(test_log_debug);
     return UNITY_END();

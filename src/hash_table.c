@@ -182,7 +182,7 @@ void ff_hash_table_remove_item(struct ff_hash_table *hash_table, uint64_t item_i
             union ff_hash_table_bucket *bucket_level = bucket_list[level];
             uint8_t hash = FF_HASH_GET_FOR_LEVEL(item_id, level);
 
-            for (int i = 0; i <= FF_BUCKET_POOL_LENGTH; i++)
+            for (int i = 0; i < FF_BUCKET_POOL_LENGTH; i++)
             {
                 if (bucket_level[i].buckets != NULL)
                 {

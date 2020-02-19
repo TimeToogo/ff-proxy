@@ -15,7 +15,7 @@ struct ff_request *mock_test_http_request(char *http_request)
     return request;
 }
 
-void test_http_get_host_empty_reqest()
+void test_http_get_host_empty_request()
 {
     struct ff_request *request = mock_test_http_request("");
 
@@ -27,7 +27,7 @@ void test_http_get_host_empty_reqest()
     free(host);
 }
 
-void test_http_get_host_valid_reqest()
+void test_http_get_host_valid_request()
 {
     struct ff_request *request = mock_test_http_request("POST / HTTP/1.1\nHost: stackoverflow.com\n\nSome\nTest\nData");
 
@@ -79,9 +79,32 @@ void test_http_unencrypted_google()
 {
     struct ff_request *request = mock_test_http_request("GET / HTTP/1.1\nConnection: close\nHost: google.com\n\n");
 
-    ff_http_send_request_unencrypted(request);
+    ff_http_send_request(request);
 
     TEST_ASSERT_EQUAL_MESSAGE(FF_REQUEST_STATE_SENT, request->state, "state check failed");
 
     ff_request_free(request);
 }
+
+void test_http_unencrypted_google_connection_keep_alive()
+{
+    struct ff_request *request = mock_test_http_request("GET / HTTP/1.1\nConnection: keep-alivelose\nHost: google.com\n\n");
+
+    ff_http_send_request(request);
+
+    TEST_ASSERT_EQUAL_MESSAGE(FF_REQUEST_STATE_SENT, request->state, "state check failed");
+
+    ff_request_free(request);
+}
+
+void test_http_unencrypted_invalid_host()
+{
+    struct ff_request *request = mock_test_http_request("GET / HTTP/1.1\nHost: somenonexistanthost555.co\n\n");
+
+    ff_http_send_request(request);
+
+    TEST_ASSERT_EQUAL_MESSAGE(FF_REQUEST_STATE_SENDING_FAILED, request->state, "state check failed");
+
+    ff_request_free(request);
+}
+
