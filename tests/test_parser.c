@@ -18,7 +18,7 @@ void test_request_parse_raw_http_get()
     TEST_ASSERT_EQUAL_MESSAGE(strlen(raw_http_request), request->payload_length, "Payload length check failed");
     TEST_ASSERT_EQUAL_MESSAGE(0, request->payload->offset, "Payload node offset check failed");
     TEST_ASSERT_EQUAL_MESSAGE(strlen(raw_http_request), request->payload->length, "Payload node length check failed");
-    TEST_ASSERT_EQUAL_STRING_MESSAGE(raw_http_request, request->payload->value, "Payload node value check failed");
+    TEST_ASSERT_EQUAL_STRING_LEN_MESSAGE(raw_http_request, request->payload->value, request->payload->length, "Payload node value check failed");
 
     ff_request_free(request);
 }
@@ -37,7 +37,7 @@ void test_request_parse_raw_http_post()
     TEST_ASSERT_EQUAL_MESSAGE(strlen(raw_http_request), request->payload_length, "Payload length check failed");
     TEST_ASSERT_EQUAL_MESSAGE(0, request->payload->offset, "Payload node offset check failed");
     TEST_ASSERT_EQUAL_MESSAGE(strlen(raw_http_request), request->payload->length, "Payload node length check failed");
-    TEST_ASSERT_EQUAL_STRING_MESSAGE(raw_http_request, request->payload->value, "Payload node value check failed");
+    TEST_ASSERT_EQUAL_STRING_LEN_MESSAGE(raw_http_request, request->payload->value, request->payload->length, "Payload node value check failed");
 
     ff_request_free(request);
 }
