@@ -12,13 +12,19 @@ CC_FLAGS=-Wall
 LD_FLAGS=-Wall 
 LIBS=-lssl -lcrypto
 
-build: server.o request.o parser.o constants.o hash_table.o crypto.o http.o logging.o 
+build: main.o config.o server.o request.o parser.o constants.o hash_table.o crypto.o http.o logging.o 
 	$(LD) $(LD_FLAGS) -o build/server $(wildcard build/obj/*.o) $(LIBS)
 
 request.o: src/request.c
 	$(CC) $(CC_FLAGS) -c $< -o build/obj/$@
 
 parser.o: src/parser.c
+	$(CC) $(CC_FLAGS) -c $< -o build/obj/$@
+
+main.o: src/main.c
+	$(CC) $(CC_FLAGS) -c $< -o build/obj/$@
+
+config.o: src/config.c
 	$(CC) $(CC_FLAGS) -c $< -o build/obj/$@
 
 server.o: src/server.c
@@ -40,7 +46,7 @@ http.o: src/http.c
 	$(CC) $(CC_FLAGS) -c $< -o build/obj/$@
 
 test_build: build
-	$(LD) $(LD_FLAGS) -o build/tests $(filter-out build/obj/server.o, $(wildcard build/obj/*.o)) tests/include/*.c tests/run.c $(LIBS)
+	$(LD) $(LD_FLAGS) -o build/tests $(filter-out build/obj/main.o, $(wildcard build/obj/*.o)) tests/include/*.c tests/run.c $(LIBS)
 
 test: test_build
 	build/tests

@@ -1,13 +1,16 @@
 #include <stdio.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <stdlib.h>
+#include <arpa/inet.h>
 #include "server.h"
 #include "parser.h"
 #include "http.h"
 
-int main(int argc, char **argv)
+#define BUFF_SIZE 1000
+
+int ff_start_proxy(struct ff_config *config)
 {
     init_openssl();
 
@@ -19,16 +22,21 @@ int main(int argc, char **argv)
     int recv_len;
     struct sockaddr_storage src_address;
     socklen_t src_address_length;
+    char ip[INET_ADDRSTRLEN];
 
     if (sockfd == 0) {
         perror("failed to open socket");
         exit(EXIT_FAILURE);
     }
 
-    printf("Binding to address 0.0.0.0:%d\n", PORT);
+    
+
+    inet_ntop(AF_INET, &config->ip_address, ip, sizeof(ip));
+
+    printf("Binding to address %.16s:%d\n", ip, config->port);
     address.sin_family = AF_INET;
-    address.sin_addr.s_addr = INADDR_ANY;
-    address.sin_port = htons(PORT);
+    address.sin_addr = config->ip_address;
+    address.sin_port = htons(config->port);
 
     if (bind(sockfd, (struct sockaddr*)&address, sizeof(address))) {
         perror("failed to bind to address");

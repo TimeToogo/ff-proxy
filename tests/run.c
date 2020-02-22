@@ -5,6 +5,7 @@
 #include "test_hash_table.c"
 #include "test_crypto.c"
 #include "test_http.c"
+#include "test_config.c"
 #include "test_logging.c"
 
 void setUp(void)
@@ -18,7 +19,7 @@ void tearDown(void)
 int main(void)
 {
     init_openssl();
-    
+
     UNITY_BEGIN();
     RUN_TEST(test_hello_world);
 
@@ -71,6 +72,15 @@ int main(void)
     RUN_TEST(test_http_tls_google);
     RUN_TEST(test_http_tls_google_connection_keep_alive);
     RUN_TEST(test_http_tls_invalid_host);
+
+    RUN_TEST(test_parse_args_empty);
+    RUN_TEST(test_parse_args_help);
+    RUN_TEST(test_parse_args_version);
+    RUN_TEST(test_parse_args_invalid_port);
+    RUN_TEST(test_parse_args_invalid_ip);
+    RUN_TEST(test_parse_args_start_proxy);
+    RUN_TEST(test_print_usage);
+    RUN_TEST(test_print_version);
 
     RUN_TEST(test_log_debug);
     return UNITY_END();
