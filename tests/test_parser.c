@@ -89,7 +89,7 @@ void test_request_parse_v1_multiple_chunks()
     char *chunk_1_http_request = "POST / HTTP/1.1\nHost: stackoverflow.com\n\n";
     char *chunk_2_http_request = "Some\nBody\nData";
 
-    char *full_http_request = calloc(1, strlen(chunk_1_http_request) + strlen(chunk_2_http_request) + 1);
+    char *full_http_request = (char*)calloc(1, strlen(chunk_1_http_request) + strlen(chunk_2_http_request) + 1);
     strcat(full_http_request, chunk_1_http_request);
     strcat(full_http_request, chunk_2_http_request);
 
@@ -158,7 +158,7 @@ void test_request_vectorise_payload()
     char *chunk_1 = "chunk1";
     char *chunk_2 = "chunk2";
 
-    char *full_payload = malloc(strlen(chunk_1) + strlen(chunk_2) + 1);
+    char *full_payload = (char*)calloc(1, strlen(chunk_1) + strlen(chunk_2) + 1);
     strcat(full_payload, chunk_1);
     strcat(full_payload, chunk_2);
 

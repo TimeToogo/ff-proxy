@@ -12,8 +12,9 @@
 #include "parser.h"
 #include "http.h"
 #include "logging.h"
+#include "alloc.h"
 
-#define BUFF_SIZE 1000
+#define BUFF_SIZE 2000 // Based on typical path MTU of 1500
 
 int ff_proxy_start(struct ff_config *config)
 {
@@ -86,6 +87,9 @@ void ff_proxy_process_incoming_packet(struct ff_config *config, struct ff_hash_t
     bool is_raw_http = ff_request_is_raw_http(buff_len, packet_buff);
     uint64_t request_id;
     struct ff_request *request;
+    pthread_t thread;
+    pthread_attr_t thread_attrs;
+    struct ff_process_request_args *thread_args;
 
     if (is_raw_http)
     {
@@ -129,9 +133,17 @@ void ff_proxy_process_incoming_packet(struct ff_config *config, struct ff_hash_t
         break;
 
     case FF_REQUEST_STATE_RECEIVED:
-        // TODO: Multi-thread
-        ff_proxy_process_request(config, request, requests);
+        thread_args = (struct ff_process_request_args*)malloc(sizeof(struct ff_process_request_args));
+        thread_args->config = config;
+        thread_args->request = request;
+        thread_args->requests = requests;
 
+        pthread_attr_init(&thread_attrs);
+        pthread_attr_setdetachstate(&thread_attrs, PTHREAD_CREATE_DETACHED);
+
+        pthread_create(&thread, &thread_attrs, (void*)ff_proxy_process_request, (void*)thread_args);
+
+        pthread_attr_destroy(&thread_attrs);
         break;
     default:
         ff_log(FF_ERROR, "Encountered invalid request state: %d", request->state);
@@ -142,8 +154,12 @@ done:
     return;
 }
 
-void ff_proxy_process_request(struct ff_config *config, struct ff_request *request, struct ff_hash_table *requests)
+void ff_proxy_process_request(struct ff_process_request_args *args)
 {
+    struct ff_config *config = args->config;
+    struct ff_request *request = args->request;
+    struct ff_hash_table *requests = args->requests;
+
     ff_request_vectorise_payload(request);
 
     ff_decrypt_request(request, &config->encryption_key);
@@ -177,4 +193,5 @@ cleanup:
     }
 
     ff_request_free(request);
+    FREE(args);
 }

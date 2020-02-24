@@ -10,7 +10,7 @@ CC=gcc
 
 CC_FLAGS=-Wall 
 LD_FLAGS=-Wall 
-LIBS=-lssl -lcrypto
+LIBS=-lssl -lcrypto -lpthread
 
 build: main.o config.o server.o request.o parser.o constants.o hash_table.o crypto.o http.o logging.o 
 	$(LD) $(LD_FLAGS) -o build/server $(wildcard build/obj/*.o) $(LIBS)
