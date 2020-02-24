@@ -5,6 +5,7 @@
 #include <assert.h>
 #include "alloc.h"
 #include "hash_table.h"
+#include "hash_table_p.h"
 
 #define FF_BUCKET_POOL_BITS 8
 #define FF_BUCKET_POOL_LENGTH 1 << FF_BUCKET_POOL_BITS

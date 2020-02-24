@@ -8,6 +8,7 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 #include "server.h"
+#include "server_p.h"
 #include "parser.h"
 #include "http.h"
 #include "logging.h"
@@ -31,7 +32,7 @@ int ff_proxy_start(struct ff_config *config)
     ff_set_logging_level(config->logging_level);
 
     ff_log(FF_DEBUG, "Initialising OpenSSL");
-    init_openssl();
+    ff_init_openssl();
     ff_log(FF_DEBUG, "Initialised OpenSSL");
 
     inet_ntop(AF_INET, &config->ip_address, ip_string, sizeof(ip_string));

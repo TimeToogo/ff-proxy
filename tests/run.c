@@ -18,7 +18,7 @@ void tearDown(void)
 
 int main(void)
 {
-    init_openssl();
+    ff_init_openssl();
 
     UNITY_BEGIN();
     RUN_TEST(test_hello_world);

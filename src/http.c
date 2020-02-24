@@ -15,6 +15,7 @@
 #include <openssl/err.h>
 #include "alloc.h"
 #include "http.h"
+#include "http_p.h"
 #include "logging.h"
 
 void ff_http_send_request(struct ff_request *request)
@@ -357,7 +358,7 @@ cleanup:
     return ret;
 }
 
-void init_openssl()
+void ff_init_openssl()
 {
     (void)SSL_library_init();
 

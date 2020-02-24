@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include "parser.h"
+#include "parser_p.h"
 #include "alloc.h"
 #include "constants.h"
 #include "logging.h"

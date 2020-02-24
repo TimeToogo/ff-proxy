@@ -2,6 +2,7 @@
 #include <string.h>
 #include "include/unity.h"
 #include "../src/parser.h"
+#include "../src/parser_p.h"
 #include "../src/alloc.h"
 
 void test_request_parse_raw_http_get()

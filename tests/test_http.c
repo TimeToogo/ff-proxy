@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include "include/unity.h"
 #include "../src/http.h"
+#include "../src/http_p.h"
 #include "../src/alloc.h"
 
 struct ff_request *mock_test_http_request(char *http_request, bool tls)
