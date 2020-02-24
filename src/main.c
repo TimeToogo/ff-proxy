@@ -6,18 +6,19 @@
 #include "server.h"
 #include "config.h"
 #include "server.h"
+#include "logging.h"
 
 static struct ff_config ff_global_config;
 
 int main(int argc, char **argv)
 {
     enum ff_action action = ff_parse_arguments(&ff_global_config, argc, argv);
-    int ret = 0;
+    int ret = EXIT_SUCCESS;
 
     switch (action)
     {
     case FF_ACTION_START_PROXY:
-        ret = ff_start_proxy(&ff_global_config);
+        ret = ff_proxy_start(&ff_global_config);
         break;
 
     case FF_ACTION_PRINT_VERSION:
@@ -32,9 +33,10 @@ int main(int argc, char **argv)
 
     case FF_ACTION_INVALID_ARGS:
         ff_print_usage(stderr);
-        ret = 1;
+        ret = EXIT_FAILURE;
         break;
     }
 
+    ff_log(FF_INFO, "Exiting...");
     return ret;
 }

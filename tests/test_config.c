@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include "include/unity.h"
 #include "../src/config.h"
+#include "../src/logging.h"
 #include "../src/alloc.h"
 
 void test_parse_args_empty()
@@ -71,6 +72,65 @@ void test_parse_args_start_proxy()
     TEST_ASSERT_EQUAL_MESSAGE(FF_ACTION_START_PROXY, action, "action check failed");
     TEST_ASSERT_EQUAL_MESSAGE(8080, config.port, "port check failed");
     TEST_ASSERT_EQUAL_MESSAGE(htonl(INADDR_LOOPBACK), config.ip_address.s_addr, "ip address check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(FF_ERROR, config.logging_level, "logging level check failed");
+}
+
+void test_parse_args_start_proxy_warning()
+{
+    struct ff_config config;
+    enum ff_action action;
+    char *args[] = {"--port", "8080", "--ip-address", "127.0.0.1", "-v"};
+
+    action = ff_parse_arguments(&config, sizeof(args) / sizeof(args[0]), args);
+
+    TEST_ASSERT_EQUAL_MESSAGE(FF_ACTION_START_PROXY, action, "action check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(8080, config.port, "port check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(htonl(INADDR_LOOPBACK), config.ip_address.s_addr, "ip address check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(FF_WARNING, config.logging_level, "logging level check failed");
+}
+
+void test_parse_args_start_proxy_info()
+{
+    struct ff_config config;
+    enum ff_action action;
+    char *args[] = {"--port", "8080", "--ip-address", "127.0.0.1", "-vv"};
+
+    action = ff_parse_arguments(&config, sizeof(args) / sizeof(args[0]), args);
+
+    TEST_ASSERT_EQUAL_MESSAGE(FF_ACTION_START_PROXY, action, "action check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(8080, config.port, "port check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(htonl(INADDR_LOOPBACK), config.ip_address.s_addr, "ip address check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(FF_INFO, config.logging_level, "logging level check failed");
+}
+
+void test_parse_args_start_proxy_debug()
+{
+    struct ff_config config;
+    enum ff_action action;
+    char *args[] = {"--port", "8080", "--ip-address", "127.0.0.1", "-vvv"};
+
+    action = ff_parse_arguments(&config, sizeof(args) / sizeof(args[0]), args);
+
+    TEST_ASSERT_EQUAL_MESSAGE(FF_ACTION_START_PROXY, action, "action check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(8080, config.port, "port check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(htonl(INADDR_LOOPBACK), config.ip_address.s_addr, "ip address check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(FF_DEBUG, config.logging_level, "logging level check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(NULL, config.encryption_key.key, "encryption key check failed");
+}
+
+void test_parse_args_start_proxy_psk()
+{
+    struct ff_config config;
+    enum ff_action action;
+    char *args[] = {"--port", "8080", "--ip-address", "127.0.0.1", "--pre-shared-key", "abc123"};
+
+    action = ff_parse_arguments(&config, sizeof(args) / sizeof(args[0]), args);
+
+    TEST_ASSERT_EQUAL_MESSAGE(FF_ACTION_START_PROXY, action, "action check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(8080, config.port, "port check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(htonl(INADDR_LOOPBACK), config.ip_address.s_addr, "ip address check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(FF_ERROR, config.logging_level, "logging level check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(args[5], config.encryption_key.key, "encryption key check failed");
 }
 
 void test_print_usage()

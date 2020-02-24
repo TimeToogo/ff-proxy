@@ -105,6 +105,7 @@ bool ff_http_send_request_unencrypted(struct ff_request *request, char *host_nam
 
     setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (void *)&timeout, sizeof(timeout));
 
+    ff_log(FF_DEBUG, "Performing DNS lookup of %s", host_name);
     host_entry = gethostbyname(host_name);
 
     if (host_entry == NULL)

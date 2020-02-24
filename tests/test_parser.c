@@ -203,3 +203,34 @@ void test_request_parse_v1_single_chunk_with_options()
 
     FREE(raw_chunk);
 }
+
+void test_ff_request_parse_id_raw_http()
+{
+    char *raw_http_request = "GET / HTTP/1.1\nHost: stackoverflow.com\n\n";
+
+    uint64_t request_id = ff_request_parse_id(strlen(raw_http_request), raw_http_request);
+
+    TEST_ASSERT_EQUAL_MESSAGE(0, request_id, "Request ID check failed");
+}
+
+void test_ff_request_parse_id()
+{
+    struct __raw_ff_request_header header = {
+        .version = FF_VERSION_1,
+        .request_id = 1234568,
+        .total_length = 0,
+        .chunk_offset = 0,
+        .chunk_length = 0};
+
+    void *raw_chunk = (char *)malloc(sizeof(struct __raw_ff_request_header));
+    void *chunk_ptr = raw_chunk;
+
+    memcpy(chunk_ptr, &header, (int)sizeof(header));
+    chunk_ptr += sizeof(header);
+
+    uint64_t request_id = ff_request_parse_id(sizeof(struct __raw_ff_request_header), raw_chunk);
+
+    TEST_ASSERT_EQUAL_MESSAGE(1234568, request_id, "Request ID check failed");
+
+    FREE(raw_chunk);
+}

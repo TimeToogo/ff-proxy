@@ -35,6 +35,8 @@ int main(void)
     RUN_TEST(test_request_parse_v1_single_chunk);
     RUN_TEST(test_request_parse_v1_multiple_chunks);
     RUN_TEST(test_request_parse_v1_single_chunk_with_options);
+    RUN_TEST(test_ff_request_parse_id_raw_http);
+    RUN_TEST(test_ff_request_parse_id);
 
     RUN_TEST(test_hash_table_init);
     RUN_TEST(test_hash_table_free);
@@ -53,6 +55,7 @@ int main(void)
     RUN_TEST(test_hash_table_remove_item_different_buckets);
 
     RUN_TEST(test_request_decrypt_with_unencrypted_request);
+    RUN_TEST(test_request_decrypt_without_key);
     RUN_TEST(test_request_decrypt_with_unknown_encryption_mode);
     RUN_TEST(test_request_decrypt_without_iv);
     RUN_TEST(test_request_decrypt_without_tag);
@@ -79,6 +82,10 @@ int main(void)
     RUN_TEST(test_parse_args_invalid_port);
     RUN_TEST(test_parse_args_invalid_ip);
     RUN_TEST(test_parse_args_start_proxy);
+    RUN_TEST(test_parse_args_start_proxy_warning);
+    RUN_TEST(test_parse_args_start_proxy_info);
+    RUN_TEST(test_parse_args_start_proxy_debug);
+    RUN_TEST(test_parse_args_start_proxy_psk);
     RUN_TEST(test_print_usage);
     RUN_TEST(test_print_version);
 

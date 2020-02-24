@@ -51,6 +51,12 @@ void ff_decrypt_request(struct ff_request *request, struct ff_encryption_key *ke
         goto done;
     }
 
+    if (key == NULL)
+    {
+        ff_log(FF_WARNING, "Encountered encrypted request and no pre-shared-key was set");
+        goto error;
+    }
+
     if (iv == NULL || iv_len == 0)
     {
         ff_log(FF_WARNING, "Encountered encrypted request with empty IV");
@@ -120,7 +126,7 @@ bool ff_decrypt_request_aes_256_gcm(
     struct ff_request_payload_node *payload_chunk = request->payload;
 
     unsigned char padded_key[32] = {0};
-    memcpy(padded_key, key->key, strlen((char*)key->key));
+    memcpy(padded_key, key->key, strlen((char *)key->key));
 
     if (!(ctx = EVP_CIPHER_CTX_new()))
     {

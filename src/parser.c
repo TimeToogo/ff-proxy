@@ -21,32 +21,65 @@ void ff_request_parse_chunk(struct ff_request *request, uint32_t buff_size, void
     }
 }
 
-void ff_request_parse_first_chunk(struct ff_request *request, uint32_t buff_size, void *buff)
+uint64_t ff_request_parse_id(uint32_t buff_size, void *buff)
 {
-    bool isRawHttpRequest = false;
+    bool is_raw_http = ff_request_is_raw_http(buff_size, buff);
+
+    if (is_raw_http)
+    {
+        return 0;
+    }
+    else
+    {
+        struct __raw_ff_request_header *header = (struct __raw_ff_request_header *)buff;
+        return header->request_id;
+    }
+}
+
+bool ff_request_is_raw_http(uint32_t buff_size, void *buff)
+{
+    if (buff_size == 0)
+    {
+        return false;
+    }
+
+    bool is_raw_http = false;
 
     for (int i = 0; i < (sizeof(HTTP_METHODS) / sizeof(HTTP_METHODS[0])); i++)
     {
-        isRawHttpRequest |= strncmp(HTTP_METHODS[i], buff, strlen(HTTP_METHODS[i])) == 0;
+        is_raw_http |= strncmp(HTTP_METHODS[i], buff, strlen(HTTP_METHODS[i])) == 0;
 
-        if (isRawHttpRequest)
+        if (is_raw_http)
         {
             break;
         }
     }
 
-    if (isRawHttpRequest)
+    return is_raw_http;
+}
+
+void ff_request_parse_first_chunk(struct ff_request *request, uint32_t buff_size, void *buff)
+{
+    bool is_raw_http = ff_request_is_raw_http(buff_size, buff);
+
+    if (is_raw_http)
     {
         ff_request_parse_raw_http(request, buff_size, buff);
+        return;
     }
-    else
+
+    if (buff_size < sizeof(struct __raw_ff_request_header))
     {
-        struct __raw_ff_request_header *header = (struct __raw_ff_request_header *)buff;
-        request->version = header->version;
-        request->request_id = header->request_id;
-        request->payload_length = header->total_length;
-        ff_request_parse_data_chunk(request, buff_size, buff);
+        ff_log(FF_WARNING, "Packet buffer to small to contain header (%d)", buff_size);
+        request->state = FF_REQUEST_STATE_RECEIVING_FAIL;
+        return;
     }
+
+    struct __raw_ff_request_header *header = (struct __raw_ff_request_header *)buff;
+    request->version = header->version;
+    request->request_id = header->request_id;
+    request->payload_length = header->total_length;
+    ff_request_parse_data_chunk(request, buff_size, buff);
 }
 
 void ff_request_parse_raw_http(struct ff_request *request, uint32_t buff_size, void *buff)

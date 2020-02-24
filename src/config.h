@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "netinet/in.h"
+#include <netinet/in.h>
+#include "logging.h"
+#include "crypto.h"
 
 #ifndef FF_CONFIG_H
 #define FF_CONFIG_H
@@ -9,6 +11,8 @@ struct ff_config
 {
     uint16_t port;
     struct in_addr ip_address;
+    struct ff_encryption_key encryption_key;
+    enum ff_log_type logging_level;
 };
 
 enum ff_action

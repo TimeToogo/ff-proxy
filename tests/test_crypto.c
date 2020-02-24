@@ -18,6 +18,25 @@ void test_request_decrypt_with_unencrypted_request()
     ff_request_free(request);
 }
 
+void test_request_decrypt_without_key()
+{
+    struct ff_request *request = ff_request_alloc();
+
+    request->options_length = 1;
+    request->options = (struct ff_request_option_node **)malloc(sizeof(struct ff_request_option_node **));
+    request->options[0] = ff_request_option_node_alloc();
+    request->options[0]->type = FF_REQUEST_OPTION_TYPE_ENCRYPTION_MODE;
+    request->options[0]->length = 1;
+    request->options[0]->value = (uint8_t *)malloc(1);
+    *request->options[0]->value = 9;
+
+    ff_decrypt_request(request, NULL);
+
+    TEST_ASSERT_EQUAL_MESSAGE(FF_REQUEST_STATE_DECRYPTING_FAILED, request->state, "state check failed");
+
+    ff_request_free(request);
+}
+
 void test_request_decrypt_with_unknown_encryption_mode()
 {
     struct ff_request *request = ff_request_alloc();
