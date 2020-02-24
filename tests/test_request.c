@@ -60,7 +60,6 @@ void test_request_alloc()
     TEST_ASSERT(request->state == FF_REQUEST_STATE_RECEIVING);
     TEST_ASSERT(request->version == 0);
     TEST_ASSERT(request->request_id == 0);
-    TEST_ASSERT(request->source.type == 0);
     TEST_ASSERT(request->options == NULL);
     TEST_ASSERT(request->payload == NULL);
     TEST_ASSERT(request->payload_length == 0);
