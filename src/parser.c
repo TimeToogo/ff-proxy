@@ -272,13 +272,16 @@ void ff_request_parse_data_chunk(struct ff_request *request, uint32_t buff_size,
 
     if (request->received_length == request->payload_length)
     {
-        ff_request_vectorise_payload(request);
         request->state = FF_REQUEST_STATE_RECEIVED;
     }
 }
 
 void ff_request_vectorise_payload(struct ff_request *request)
 {
+    if (request->payload->next == NULL) {
+        return;
+    }
+
     struct ff_request_payload_node *payload = ff_request_payload_node_alloc();
     payload->length = request->payload_length;
     payload->offset = 0;

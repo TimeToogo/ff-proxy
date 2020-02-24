@@ -7,10 +7,12 @@
 #ifndef FF_PARSER_H
 #define FF_PARSER_H
 
-void ff_request_parse_chunk(struct ff_request *request, uint32_t buff_size, void *buff);
-
 uint64_t ff_request_parse_id(uint32_t buff_size, void *buff);
  
 bool ff_request_is_raw_http(uint32_t buff_size, void *buff);
+
+void ff_request_parse_chunk(struct ff_request *request, uint32_t buff_size, void *buff);
+
+void ff_request_vectorise_payload(struct ff_request *request);
 
 #endif

@@ -139,14 +139,49 @@ void test_request_parse_v1_multiple_chunks()
     TEST_ASSERT_EQUAL_MESSAGE(NULL, request->options, "Options check failed");
     TEST_ASSERT_EQUAL_MESSAGE(0, request->payload->offset, "Payload node (1) offset check failed");
 
-    TEST_ASSERT_EQUAL_MESSAGE(strlen(chunk_1_http_request) + strlen(chunk_2_http_request), request->payload->length, "Payload node (1) length check failed");
-    TEST_ASSERT_EQUAL_STRING_LEN_MESSAGE(full_http_request, request->payload->value, request->payload->length, "Payload node (1) value check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(strlen(chunk_1_http_request), request->payload->length, "Payload node (1) length check failed");
+    TEST_ASSERT_EQUAL_STRING_LEN_MESSAGE(chunk_1_http_request, request->payload->value, strlen(chunk_1_http_request), "Payload node (1) value check failed");
+    TEST_ASSERT_NOT_EQUAL_MESSAGE(NULL, request->payload->next, "Payload node (1) next check failed");
+
+    TEST_ASSERT_EQUAL_MESSAGE(strlen(chunk_2_http_request), request->payload->next->length, "Payload node (2) length check failed");
+    TEST_ASSERT_EQUAL_STRING_LEN_MESSAGE(chunk_2_http_request, request->payload->next->value, strlen(chunk_2_http_request), "Payload node (2) value check failed");
 
     ff_request_free(request);
 
     FREE(raw_chunk_1);
     FREE(raw_chunk_2);
     FREE(full_http_request);
+}
+
+void test_request_vectorise_payload()
+{
+    char *chunk_1 = "chunk1";
+    char *chunk_2 = "chunk2";
+
+    char *full_payload = malloc(strlen(chunk_1) + strlen(chunk_2) + 1);
+    strcat(full_payload, chunk_1);
+    strcat(full_payload, chunk_2);
+
+    struct ff_request *request = ff_request_alloc();
+    request->payload_length = strlen(full_payload);
+    request->payload = ff_request_payload_node_alloc();
+    ff_request_payload_load_buff(request->payload, strlen(chunk_1), chunk_1);
+    request->payload->length = strlen(chunk_1);
+
+    request->payload->next = ff_request_payload_node_alloc();
+    ff_request_payload_load_buff(request->payload->next, strlen(chunk_2), chunk_2);
+    request->payload->next->offset = strlen(chunk_1);
+    request->payload->next->length = strlen(chunk_2);
+
+    ff_request_vectorise_payload(request);
+
+    TEST_ASSERT_EQUAL_MESSAGE(strlen(full_payload), request->payload->length, "Payload node length check failed");
+    TEST_ASSERT_EQUAL_STRING_LEN_MESSAGE(full_payload, request->payload->value, strlen(full_payload), "Payload node value check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(NULL, request->payload->next, "Payload node next check failed");
+
+    ff_request_free(request);
+
+    FREE(full_payload);
 }
 
 void test_request_parse_v1_single_chunk_with_options()

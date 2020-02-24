@@ -28,6 +28,4 @@ void ff_request_parse_raw_http(struct ff_request *request, uint32_t buff_size, v
 
 void ff_request_parse_data_chunk(struct ff_request *request, uint32_t buff_size, void *buff);
 
-void ff_request_vectorise_payload(struct ff_request *request);
-
 #endif

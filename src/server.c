@@ -144,6 +144,8 @@ done:
 
 void ff_proxy_process_request(struct ff_config *config, struct ff_request *request, struct ff_hash_table *requests)
 {
+    ff_request_vectorise_payload(request);
+
     ff_decrypt_request(request, &config->encryption_key);
 
     if (request->state != FF_REQUEST_STATE_DECRYPTED)

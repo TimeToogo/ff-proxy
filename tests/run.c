@@ -34,6 +34,7 @@ int main(void)
     RUN_TEST(test_request_parse_raw_http_post);
     RUN_TEST(test_request_parse_v1_single_chunk);
     RUN_TEST(test_request_parse_v1_multiple_chunks);
+    RUN_TEST(test_request_vectorise_payload);
     RUN_TEST(test_request_parse_v1_single_chunk_with_options);
     RUN_TEST(test_ff_request_parse_id_raw_http);
     RUN_TEST(test_ff_request_parse_id);
