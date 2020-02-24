@@ -171,7 +171,6 @@ done:
 cleanup:
     if (request->request_id != 0)
     {
-        // TODO: thread safety
         ff_hash_table_remove_item(requests, request->request_id);
     }
 

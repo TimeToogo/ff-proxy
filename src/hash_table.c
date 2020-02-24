@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <math.h>
 #include <assert.h>
+#include <pthread.h>
 #include "alloc.h"
 #include "hash_table.h"
 #include "hash_table_p.h"
@@ -11,6 +12,8 @@
 #define FF_BUCKET_POOL_LENGTH 1 << FF_BUCKET_POOL_BITS
 
 #define FF_HASH_GET_FOR_LEVEL(item_id, level) (uint8_t)(((item_id) & (0xFFFFFFFFFFFFFFFFULL >> (64 - FF_BUCKET_POOL_BITS * ((level) + 1)))) >> FF_BUCKET_POOL_BITS * (level))
+
+pthread_mutex_t ff_hash_table_data_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 struct ff_hash_table *ff_hash_table_init(uint8_t prefix_bit_length)
 {
@@ -74,11 +77,15 @@ union ff_hash_table_bucket *ff_hash_table_get_or_create_bucket(
 
 void *ff_hash_table_get_item(struct ff_hash_table *hash_table, uint64_t item_id)
 {
+    pthread_mutex_lock(&ff_hash_table_data_mutex);
+
     union ff_hash_table_bucket *buckets = ff_hash_table_get_or_create_bucket(hash_table, item_id, false, NULL);
+    void *ret = NULL;
 
     if (buckets == NULL || buckets->nodes == NULL)
     {
-        return NULL;
+        ret = NULL;
+        goto cleanup;
     }
 
     struct ff_hash_table_node *node = buckets->nodes;
@@ -87,15 +94,20 @@ void *ff_hash_table_get_item(struct ff_hash_table *hash_table, uint64_t item_id)
     {
         if (node->item_id == item_id && node->value != NULL)
         {
-            return node->value;
+            ret = node->value;
+            goto cleanup;
         }
     } while ((node = node->next) != NULL);
 
-    return NULL;
+cleanup:
+    pthread_mutex_unlock(&ff_hash_table_data_mutex);
+    return ret;
 }
 
 void ff_hash_table_put_item(struct ff_hash_table *hash_table, uint64_t item_id, void *item)
 {
+    pthread_mutex_lock(&ff_hash_table_data_mutex);
+
     union ff_hash_table_bucket *buckets = ff_hash_table_get_or_create_bucket(hash_table, item_id, true, NULL);
 
     // If no nodes in bucket add first node
@@ -107,7 +119,7 @@ void ff_hash_table_put_item(struct ff_hash_table *hash_table, uint64_t item_id, 
         buckets->nodes->item_id = item_id;
         buckets->nodes->value = item;
         hash_table->length++;
-        return;
+        goto cleanup;
     }
 
     // Find last node or matching in chain
@@ -116,7 +128,7 @@ void ff_hash_table_put_item(struct ff_hash_table *hash_table, uint64_t item_id, 
     if (node->item_id == item_id)
     {
         node->value = item;
-        return;
+        goto cleanup;
     }
 
     while (node->next != NULL)
@@ -126,7 +138,7 @@ void ff_hash_table_put_item(struct ff_hash_table *hash_table, uint64_t item_id, 
         if (node->item_id == item_id)
         {
             node->value = item;
-            return;
+            goto cleanup;
         }
     }
 
@@ -136,10 +148,15 @@ void ff_hash_table_put_item(struct ff_hash_table *hash_table, uint64_t item_id, 
     new_node->value = item;
     node->next = new_node;
     hash_table->length++;
+
+cleanup:
+    pthread_mutex_unlock(&ff_hash_table_data_mutex);
 }
 
 void ff_hash_table_remove_item(struct ff_hash_table *hash_table, uint64_t item_id)
 {
+    pthread_mutex_lock(&ff_hash_table_data_mutex);
+
     union ff_hash_table_bucket **bucket_list = (union ff_hash_table_bucket **)calloc(1, sizeof(union ff_hash_table_bucket *) * hash_table->bucket_levels);
     union ff_hash_table_bucket *buckets = ff_hash_table_get_or_create_bucket(hash_table, item_id, true, bucket_list);
 
@@ -211,6 +228,7 @@ void ff_hash_table_remove_item(struct ff_hash_table *hash_table, uint64_t item_i
     }
 
 cleanup:
+    pthread_mutex_unlock(&ff_hash_table_data_mutex);
     FREE(bucket_list);
 }
 
