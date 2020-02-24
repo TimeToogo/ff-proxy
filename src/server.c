@@ -54,6 +54,9 @@ int ff_proxy_start(struct ff_config *config)
     bind_address.sin_addr = config->ip_address;
     bind_address.sin_port = htons(config->port);
 
+    bool flag = true;
+    setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(int));
+
     if (bind(sockfd, (struct sockaddr *)&bind_address, sizeof(bind_address)))
     {
         ff_log(FF_FATAL, "Failed to bind to address");
@@ -113,7 +116,14 @@ void ff_proxy_process_incoming_packet(struct ff_config *config, struct ff_hash_t
         if (request == NULL)
         {
             request = ff_request_alloc();
+            memcpy(&request->source, src_address, sizeof(struct sockaddr));
             ff_hash_table_put_item(requests, request_id, (void *)request);
+        }
+
+        if (memcmp(&request->source, src_address, sizeof(struct sockaddr)) != 0)
+        {
+            ff_log(FF_WARNING, "Incoming packet IP address does not match original source IP address for request %s (will discard)", request->request_id);
+            goto done;
         }
 
         ff_request_parse_chunk(request, buff_len, packet_buff);
@@ -133,7 +143,9 @@ void ff_proxy_process_incoming_packet(struct ff_config *config, struct ff_hash_t
         break;
 
     case FF_REQUEST_STATE_RECEIVED:
-        thread_args = (struct ff_process_request_args*)malloc(sizeof(struct ff_process_request_args));
+        ff_log(FF_DEBUG, "Finished receiving incoming request");
+
+        thread_args = (struct ff_process_request_args *)malloc(sizeof(struct ff_process_request_args));
         thread_args->config = config;
         thread_args->request = request;
         thread_args->requests = requests;
@@ -141,7 +153,7 @@ void ff_proxy_process_incoming_packet(struct ff_config *config, struct ff_hash_t
         pthread_attr_init(&thread_attrs);
         pthread_attr_setdetachstate(&thread_attrs, PTHREAD_CREATE_DETACHED);
 
-        pthread_create(&thread, &thread_attrs, (void*)ff_proxy_process_request, (void*)thread_args);
+        pthread_create(&thread, &thread_attrs, (void *)ff_proxy_process_request, (void *)thread_args);
 
         pthread_attr_destroy(&thread_attrs);
         break;

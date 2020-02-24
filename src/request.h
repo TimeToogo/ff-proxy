@@ -68,7 +68,7 @@ struct ff_request
 {
     enum ff_request_state state;
     enum ff_request_version version;
-    struct ff_ip_address source;
+    struct sockaddr source;
     uint64_t request_id;
     uint8_t options_length;
     struct ff_request_option_node **options;

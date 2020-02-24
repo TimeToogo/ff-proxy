@@ -70,17 +70,9 @@ void ff_request_payload_node_free(struct ff_request_payload_node *node)
 
 struct ff_request *ff_request_alloc()
 {
-    struct ff_request *request = (struct ff_request *)malloc(sizeof(struct ff_request));
+    struct ff_request *request = (struct ff_request *)calloc(1, sizeof(struct ff_request));
 
     request->state = FF_REQUEST_STATE_RECEIVING;
-    request->version = 0;
-    request->request_id = 0;
-    request->source.type = 0;
-    request->options_length = 0;
-    request->options = NULL;
-    request->payload_length = 0;
-    request->received_length = 0;
-    request->payload = NULL;
 
     return request;
 }
