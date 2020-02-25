@@ -1,0 +1,19 @@
+name: Publish Docker
+
+on: [push]
+
+jobs:
+  publish_docker:
+    needs:
+      build
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: Publish to Registry
+      uses: elgohr/Publish-Docker-Github-Action@master
+      with:
+        name: timetoogo/ff
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        dockerfile: docker/prod.Dockerfile
+        tag_names: true

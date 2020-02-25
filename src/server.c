@@ -26,7 +26,7 @@ int ff_proxy_start(struct ff_config *config)
     struct sockaddr_storage src_address;
     socklen_t src_address_length;
 
-    char ip_string[INET6_ADDRSTRLEN + 1];
+    char ip_string[INET6_ADDRSTRLEN + 1] = {0};
 
     struct ff_hash_table *requests = ff_hash_table_init(16);
 
