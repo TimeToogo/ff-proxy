@@ -12,8 +12,11 @@ CC_FLAGS=-Wall
 LD_FLAGS=-Wall 
 LIBS=-lssl -lcrypto -lpthread
 
-build: main.o config.o server.o request.o parser.o constants.o hash_table.o crypto.o http.o logging.o 
+build: setup main.o config.o server.o request.o parser.o constants.o hash_table.o crypto.o http.o logging.o 
 	$(LD) $(LD_FLAGS) -o build/server $(wildcard build/obj/*.o) $(LIBS)
+
+setup: 
+	mkdir -p build/obj
 
 request.o: src/request.c
 	$(CC) $(CC_FLAGS) -c $< -o build/obj/$@
@@ -58,3 +61,6 @@ clean:
 	rm -f build/obj/*.o
 	rm -f build/server
 	rm -f build/tests
+
+install:
+	install -m +rx build/server /usr/local/bin/ff
