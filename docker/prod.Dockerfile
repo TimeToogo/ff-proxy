@@ -1,25 +1,20 @@
-# FROM alpine:latest as build
+FROM alpine:latest as build
 
-# COPY . /code
+COPY . /code
 
-# # Add build tools
-# RUN apk add --update alpine-sdk openssl-dev
-
-# # Build ff
-# RUN cd /code && \
-#     make build && \
-#     make install
-
-FROM alpine:latest
-
-COPY . /code/
-
-# Install dependencies
-RUN apk add --update alpine-sdk openssl-dev openssl
+# Add build tools
+RUN apk add --update alpine-sdk openssl-dev
 
 # Build ff
 RUN cd /code && \
     make build && \
     make install
+
+FROM alpine:latest
+
+# Install dependencies
+RUN apk add --update openssl
+
+COPY --from=build /usr/local/bin/ff /usr/local/bin/ff
 
 ENTRYPOINT [ "ff" ]
