@@ -10,7 +10,7 @@ void test_parse_args_empty()
 {
     struct ff_config config;
     enum ff_action action;
-    char *args[] = {};
+    char *args[] = {"ff", };
 
     action = ff_parse_arguments(&config, sizeof(args) / sizeof(args[0]), args);
 
@@ -21,7 +21,7 @@ void test_parse_args_help()
 {
     struct ff_config config;
     enum ff_action action;
-    char *args[] = {"--help"};
+    char *args[] = {"ff", "--help"};
 
     action = ff_parse_arguments(&config, sizeof(args) / sizeof(args[0]), args);
 
@@ -32,7 +32,7 @@ void test_parse_args_version()
 {
     struct ff_config config;
     enum ff_action action;
-    char *args[] = {"--version"};
+    char *args[] = {"ff", "--version"};
 
     action = ff_parse_arguments(&config, sizeof(args) / sizeof(args[0]), args);
 
@@ -43,7 +43,7 @@ void test_parse_args_invalid_port()
 {
     struct ff_config config;
     enum ff_action action;
-    char *args[] = {"--port", "abc"};
+    char *args[] = {"ff", "--port", "abc"};
 
     action = ff_parse_arguments(&config, sizeof(args) / sizeof(args[0]), args);
 
@@ -54,7 +54,7 @@ void test_parse_args_invalid_ip()
 {
     struct ff_config config;
     enum ff_action action;
-    char *args[] = {"--ip-address", "12345678"};
+    char *args[] = {"ff", "--ip-address", "12345678"};
 
     action = ff_parse_arguments(&config, sizeof(args) / sizeof(args[0]), args);
 
@@ -65,7 +65,7 @@ void test_parse_args_start_proxy()
 {
     struct ff_config config;
     enum ff_action action;
-    char *args[] = {"--port", "8080", "--ip-address", "127.0.0.1"};
+    char *args[] = {"ff", "--port", "8080", "--ip-address", "127.0.0.1"};
 
     action = ff_parse_arguments(&config, sizeof(args) / sizeof(args[0]), args);
 
@@ -79,7 +79,7 @@ void test_parse_args_start_proxy_warning()
 {
     struct ff_config config;
     enum ff_action action;
-    char *args[] = {"--port", "8080", "--ip-address", "127.0.0.1", "-v"};
+    char *args[] = {"ff", "--port", "8080", "--ip-address", "127.0.0.1", "-v"};
 
     action = ff_parse_arguments(&config, sizeof(args) / sizeof(args[0]), args);
 
@@ -93,7 +93,7 @@ void test_parse_args_start_proxy_info()
 {
     struct ff_config config;
     enum ff_action action;
-    char *args[] = {"--port", "8080", "--ip-address", "127.0.0.1", "-vv"};
+    char *args[] = {"ff", "--port", "8080", "--ip-address", "127.0.0.1", "-vv"};
 
     action = ff_parse_arguments(&config, sizeof(args) / sizeof(args[0]), args);
 
@@ -107,7 +107,7 @@ void test_parse_args_start_proxy_debug()
 {
     struct ff_config config;
     enum ff_action action;
-    char *args[] = {"--port", "8080", "--ip-address", "127.0.0.1", "-vvv"};
+    char *args[] = {"ff", "--port", "8080", "--ip-address", "127.0.0.1", "-vvv"};
 
     action = ff_parse_arguments(&config, sizeof(args) / sizeof(args[0]), args);
 
@@ -122,7 +122,7 @@ void test_parse_args_start_proxy_psk()
 {
     struct ff_config config;
     enum ff_action action;
-    char *args[] = {"--port", "8080", "--ip-address", "127.0.0.1", "--pre-shared-key", "abc123"};
+    char *args[] = {"ff", "--port", "8080", "--ip-address", "127.0.0.1", "--pre-shared-key", "abc123"};
 
     action = ff_parse_arguments(&config, sizeof(args) / sizeof(args[0]), args);
 
@@ -130,7 +130,7 @@ void test_parse_args_start_proxy_psk()
     TEST_ASSERT_EQUAL_MESSAGE(8080, config.port, "port check failed");
     TEST_ASSERT_EQUAL_MESSAGE(htonl(INADDR_LOOPBACK), config.ip_address.s_addr, "ip address check failed");
     TEST_ASSERT_EQUAL_MESSAGE(FF_ERROR, config.logging_level, "logging level check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(args[5], config.encryption_key.key, "encryption key check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(args[6], config.encryption_key.key, "encryption key check failed");
 }
 
 void test_print_usage()

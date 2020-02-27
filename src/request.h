@@ -46,16 +46,6 @@ struct ff_request_option_node
     uint8_t *value;
 };
 
-struct ff_ip_address {
-    // Either AF_INET or AF_INET6
-    uint16_t type;
-
-    union {
-        struct in_addr ipv4;
-        struct in6_addr ipv6;
-    } address;
-};
-
 struct ff_request_payload_node
 {
     uint16_t offset;

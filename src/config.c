@@ -18,13 +18,12 @@ enum ff_action ff_parse_arguments(struct ff_config *config, int argc, char **arg
     int state = FF_PARSE_ARG_STATE_DEFAULT;
 
     uint16_t port = 0;
-    struct in_addr ip_address;
+    struct in_addr ip_address = {.s_addr = htonl(INADDR_ANY)};
     enum ff_log_type logging_level = FF_ERROR;
     struct ff_encryption_key encryption_key = {.key = NULL};
     bool parsed_port = false;
-    bool parsed_ip = false;
 
-    for (int i = 0; i < argc; i++)
+    for (int i = 1; i < argc; i++)
     {
         char *arg = argv[i];
 
@@ -36,7 +35,6 @@ enum ff_action ff_parse_arguments(struct ff_config *config, int argc, char **arg
                 action = FF_ACTION_PRINT_USAGE;
                 goto done;
             }
-
             else if (strcasecmp(arg, "--version") == 0)
             {
                 action = FF_ACTION_PRINT_VERSION;
@@ -66,6 +64,12 @@ enum ff_action ff_parse_arguments(struct ff_config *config, int argc, char **arg
             {
                 logging_level = FF_WARNING;
             }
+            else 
+            {
+                fprintf(stderr, "Unkown argument %s\n\n", arg);
+                action = FF_ACTION_INVALID_ARGS;
+                goto done;
+            }
             break;
 
         case FF_PARSE_ARG_PARSE_PORT:
@@ -90,7 +94,6 @@ enum ff_action ff_parse_arguments(struct ff_config *config, int argc, char **arg
                 goto done;
             }
 
-            parsed_ip = true;
             state = FF_PARSE_ARG_STATE_DEFAULT;
             break;
 
@@ -114,12 +117,6 @@ enum ff_action ff_parse_arguments(struct ff_config *config, int argc, char **arg
             action = FF_ACTION_INVALID_ARGS;
         }
 
-        if (!parsed_ip)
-        {
-            fputs("--ip-address is required\n\n", stderr);
-            action = FF_ACTION_INVALID_ARGS;
-        }
-
         config->port = port;
         config->ip_address = ip_address;
         config->encryption_key = encryption_key;
@@ -136,7 +133,7 @@ void ff_print_usage(FILE *fd)
 ff version " FF_VERSION "\n\n\
 start proxy: ff\n\
     --port bind_port_num\n\
-    --ip-address bind_ip_address # format: 0.0.0.0 \n\
+    [--ip-address bind_ip_address] # format: 0.0.0.0 \n\
     [--pre-shared-key pre_shared_key]\n\
     -v[vv] \n\
 \n\
