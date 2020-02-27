@@ -1,12 +1,14 @@
 #include "include/unity.h"
-#include "test_hello_world.c"
-#include "test_request.c"
-#include "test_parser.c"
-#include "test_hash_table.c"
-#include "test_crypto.c"
-#include "test_http.c"
-#include "test_config.c"
-#include "test_logging.c"
+#include "server/test_hello_world.c"
+#include "server/test_request.c"
+#include "server/test_parser.c"
+#include "server/test_hash_table.c"
+#include "server/test_crypto.c"
+#include "server/test_http.c"
+#include "server/test_config.c"
+#include "server/test_logging.c"
+#include "client/test_config.c"
+#include "client/test_crypto.c"
 
 void setUp(void)
 {
@@ -89,6 +91,24 @@ int main(void)
     RUN_TEST(test_parse_args_start_proxy_psk);
     RUN_TEST(test_print_usage);
     RUN_TEST(test_print_version);
+
+    RUN_TEST(test_client_parse_args_empty);
+    RUN_TEST(test_client_parse_args_help);
+    RUN_TEST(test_client_parse_args_version);
+    RUN_TEST(test_client_parse_args_invalid_port);
+    RUN_TEST(test_client_parse_args_invalid_ip);
+    RUN_TEST(test_client_parse_args_make_request);
+    RUN_TEST(test_client_parse_args_make_request_warning);
+    RUN_TEST(test_client_parse_args_make_request_info);
+    RUN_TEST(test_client_parse_args_make_request_debug);
+    RUN_TEST(test_client_parse_args_make_request_psk);
+    RUN_TEST(test_client_parse_args_make_request_https);
+    RUN_TEST(test_client_print_usage);
+    RUN_TEST(test_client_print_version);
+
+    RUN_TEST(test_client_request_encrypt);
+    RUN_TEST(test_client_request_encrypt_without_key);
+    RUN_TEST(test_client_request_encrypt_and_decrypt_returns_original_payload);
 
     RUN_TEST(test_log_debug);
     return UNITY_END();

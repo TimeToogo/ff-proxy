@@ -1,6 +1,6 @@
 #include <stdlib.h>
-#include "include/unity.h"
-#include "../src/logging.h"
+#include "../include/unity.h"
+#include "../../src/logging.h"
 
 void test_log_debug()
 {

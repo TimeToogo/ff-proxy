@@ -1,8 +1,8 @@
 #include <stdlib.h>
 #include <string.h>
-#include "include/unity.h"
-#include "../src/request.h"
-#include "../src/alloc.h"
+#include "../include/unity.h"
+#include "../../src/request.h"
+#include "../../src/alloc.h"
 
 void test_request_option_node_alloc()
 {

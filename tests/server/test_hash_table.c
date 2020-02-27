@@ -1,8 +1,8 @@
 #include <stdlib.h>
 #include <string.h>
-#include "include/unity.h"
-#include "../src/hash_table.h"
-#include "../src/hash_table_p.h"
+#include "../include/unity.h"
+#include "../../src/hash_table.h"
+#include "../../src/hash_table_p.h"
 
 void test_hash_table_init()
 {

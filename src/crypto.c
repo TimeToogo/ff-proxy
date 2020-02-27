@@ -5,7 +5,6 @@
 #include <openssl/evp.h>
 #include "crypto.h"
 #include "crypto_p.h"
-#include "constants.h"
 #include "logging.h"
 #include "alloc.h"
 

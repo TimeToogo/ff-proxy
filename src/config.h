@@ -3,6 +3,7 @@
 #include <netinet/in.h>
 #include "logging.h"
 #include "crypto.h"
+#include "version.h"
 
 #ifndef FF_CONFIG_H
 #define FF_CONFIG_H

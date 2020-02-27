@@ -1,16 +1,16 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
-#include "include/unity.h"
-#include "../src/config.h"
-#include "../src/logging.h"
-#include "../src/alloc.h"
+#include "../include/unity.h"
+#include "../../src/config.h"
+#include "../../src/logging.h"
+#include "../../src/alloc.h"
 
 void test_parse_args_empty()
 {
     struct ff_config config;
     enum ff_action action;
-    char *args[] = {"ff", };
+    char *args[] = {"ff"};
 
     action = ff_parse_arguments(&config, sizeof(args) / sizeof(args[0]), args);
 

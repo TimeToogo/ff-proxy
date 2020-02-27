@@ -1,10 +1,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <openssl/evp.h>
-#include "include/unity.h"
-#include "../src/parser.h"
-#include "../src/alloc.h"
-#include "../src/crypto.h"
+#include "../include/unity.h"
+#include "../../src/parser.h"
+#include "../../src/alloc.h"
+#include "../../src/crypto.h"
 
 void test_request_decrypt_with_unencrypted_request()
 {
