@@ -141,7 +141,7 @@ ff version " FF_VERSION "\n\n\
 make request: ff_client \n\
     --port dest_port_num\n\
     [--ip-address dest_ip_address] # format: 0.0.0.0 \n\
-    [--pre-shared-key pre_shared_key]\n\
+    [--pre-shared-key pre_shared_key] # encrypt the payload \n\
     [--https]\n\
     -v[vv] \n\
     # Request body is read from STDIN\n\

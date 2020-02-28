@@ -14,4 +14,6 @@ struct ff_encryption_key
 
 void ff_decrypt_request(struct ff_request *request, struct ff_encryption_key *key);
 
+void ff_init_openssl();
+
 #endif

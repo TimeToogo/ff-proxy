@@ -9,6 +9,7 @@
 #include "server/test_logging.c"
 #include "client/test_config.c"
 #include "client/test_crypto.c"
+#include "client/test_client.c"
 
 void setUp(void)
 {
@@ -109,6 +110,11 @@ int main(void)
     RUN_TEST(test_client_request_encrypt);
     RUN_TEST(test_client_request_encrypt_without_key);
     RUN_TEST(test_client_request_encrypt_and_decrypt_returns_original_payload);
+
+    RUN_TEST(test_client_generate_request_id);
+    RUN_TEST(test_client_send_request_no_packets);
+    RUN_TEST(test_client_send_request_two_packets);
+    RUN_TEST(test_client_read_payload_from_file);
 
     RUN_TEST(test_log_debug);
     return UNITY_END();

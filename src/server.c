@@ -65,6 +65,7 @@ int ff_proxy_start(struct ff_config *config)
 
     ff_log(FF_DEBUG, "Bound to socket");
 
+    // A single packet at a time
     while ((recv_len = recvfrom(sockfd, buffer, sizeof(buffer), 0, (struct sockaddr *)&src_address, &src_address_length)))
     {
         if (recv_len == -1)
@@ -75,7 +76,7 @@ int ff_proxy_start(struct ff_config *config)
 
         memset(&ip_string, 0, sizeof(ip_string));
         getnameinfo((struct sockaddr *)&src_address, src_address_length, ip_string, sizeof(ip_string), NULL, 0, NI_NUMERICHOST);
-        ff_log(FF_DEBUG, "Received %d bytes from %s", recv_len, ip_string);
+        ff_log(FF_DEBUG, "Received packet of %d bytes from %s", recv_len, ip_string);
 
         ff_proxy_process_incoming_packet(config, requests, (struct sockaddr *)&src_address, buffer, recv_len);
     }

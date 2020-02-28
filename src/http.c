@@ -10,7 +10,6 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <math.h>
-#include <openssl/conf.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 #include "alloc.h"
@@ -356,17 +355,6 @@ cleanup:
     }
 
     return ret;
-}
-
-void ff_init_openssl()
-{
-    (void)SSL_library_init();
-
-    SSL_load_error_strings();
-
-    OpenSSL_add_all_algorithms();
-
-    OPENSSL_config(NULL);
 }
 
 char *ff_http_get_destination_host(struct ff_request *request)

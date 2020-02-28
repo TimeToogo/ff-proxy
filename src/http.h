@@ -6,6 +6,4 @@
 
 void ff_http_send_request(struct ff_request *request);
 
-void ff_init_openssl();
-
 #endif

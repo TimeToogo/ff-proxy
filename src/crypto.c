@@ -3,6 +3,9 @@
 #include <stdbool.h>
 #include <string.h>
 #include <openssl/evp.h>
+#include <openssl/ssl.h>
+#include <openssl/conf.h>
+#include <openssl/err.h>
 #include "crypto.h"
 #include "crypto_p.h"
 #include "logging.h"
@@ -212,4 +215,15 @@ done:
 cleanup:
     EVP_CIPHER_CTX_free(ctx);
     return ret_val;
+}
+
+void ff_init_openssl()
+{
+    (void)SSL_library_init();
+
+    SSL_load_error_strings();
+
+    OpenSSL_add_all_algorithms();
+
+    OPENSSL_config(NULL);
 }

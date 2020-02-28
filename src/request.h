@@ -67,6 +67,21 @@ struct ff_request
     struct ff_request_payload_node *payload;
 };
 
+struct __raw_ff_request_header
+{
+    uint16_t version;
+    uint64_t request_id;
+    uint32_t total_length;
+    uint32_t chunk_offset;
+    uint16_t chunk_length;
+} __attribute__((packed));
+
+struct __raw_ff_request_option_header
+{
+    uint8_t type;
+    uint16_t length;
+} __attribute__((packed));
+
 struct ff_request_option_node *ff_request_option_node_alloc(void);
 
 void ff_request_option_load_buff(struct ff_request_option_node *node, uint32_t buff_size, void *buff);
