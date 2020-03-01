@@ -3,6 +3,10 @@
 #ifndef FF_CLIENT_P_H
 #define FF_CLIENT_P_H
 
+#define FF_CLIENT_READ_PAYLOAD_BUFFER_SIZE 1024
+#define FF_CLIENT_MAX_PACKETS 1024
+#define FF_CLIENT_MAX_PACKET_LENGTH 1300 // Based on typical PMTU of 1500
+
 struct ff_client_packet
 {
     uint8_t *value;
@@ -11,7 +15,7 @@ struct ff_client_packet
 
 void ff_client_read_payload_from_file(struct ff_request *request, FILE *fd);
 
-struct ff_client_packet *ff_client_serialize_request(struct ff_request *request, uint16_t *packet_count);
+struct ff_client_packet *ff_client_packetise_request(struct ff_request *request, uint16_t *packet_count);
 
 uint64_t ff_client_generate_request_id();
 

@@ -115,6 +115,9 @@ int main(void)
     RUN_TEST(test_client_send_request_no_packets);
     RUN_TEST(test_client_send_request_two_packets);
     RUN_TEST(test_client_read_payload_from_file);
+    RUN_TEST(test_client_packetise_request_empty_request);
+    RUN_TEST(test_client_packetise_request_single_packet);
+    RUN_TEST(test_client_packetise_request_multiple_packets_with_option);
 
     RUN_TEST(test_log_debug);
     return UNITY_END();

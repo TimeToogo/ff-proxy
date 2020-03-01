@@ -15,10 +15,6 @@
 #include "alloc.h"
 #include "crypto.h"
 
-#define FF_CLIENT_READ_PAYLOAD_BUFFER_SIZE 1024
-#define FF_CLIENT_MAX_PACKETS 1024
-#define FF_CLIENT_MAX_PACKET_LENGTH 1300 // Based on typical PMTU of 1500
-
 int ff_client_make_request(struct ff_client_config *config, FILE *fd)
 {
     ff_log(FF_DEBUG, "Initialising OpenSSL");
@@ -42,11 +38,17 @@ int ff_client_make_request(struct ff_client_config *config, FILE *fd)
     request->options_length++;
 
     uint16_t packet_count;
-    struct ff_client_packet *packets = ff_client_serialize_request(request, &packet_count);
+    struct ff_client_packet *packets = ff_client_packetise_request(request, &packet_count);
 
     int ret_val = ff_client_send_request(config, packets, packet_count);
 
     ff_request_free(request);
+
+    for (uint16_t i = 0; i < packet_count; i++)
+    {
+        FREE(packets[i].value);
+    }
+
     FREE(packets);
 
     return ret_val;
@@ -64,7 +66,7 @@ void ff_client_read_payload_from_file(struct ff_request *request, FILE *fd)
     {
         temp_node = node;
         node = node->next;
-        ff_request_payload_node_free(node);
+        ff_request_payload_node_free(temp_node);
     }
 
     request->payload = ff_request_payload_node_alloc();
@@ -90,15 +92,16 @@ void ff_client_read_payload_from_file(struct ff_request *request, FILE *fd)
     request->payload->length = payload_length;
 }
 
-struct ff_client_packet *ff_client_serialize_request(struct ff_request *request, uint16_t *packet_count)
+struct ff_client_packet *ff_client_packetise_request(struct ff_request *request, uint16_t *packet_count)
 {
-    struct ff_client_packet *packets = (struct ff_client_packet *)malloc(sizeof(struct ff_client_packet *) * FF_CLIENT_MAX_PACKETS);
+    struct ff_client_packet *packets = (struct ff_client_packet *)calloc(1, sizeof(struct ff_client_packet *) * FF_CLIENT_MAX_PACKETS);
     uint64_t request_id = ff_client_generate_request_id();
     uint32_t chunk_offset = 0;
+    uint16_t bytes_left = request->payload_length;
 
     *packet_count = 0;
 
-    while (1)
+    while (bytes_left > 0)
     {
         uint8_t *buffer = (uint8_t *)calloc(1, FF_CLIENT_MAX_PACKET_LENGTH);
         uint16_t packet_length = 0;
@@ -106,7 +109,6 @@ struct ff_client_packet *ff_client_serialize_request(struct ff_request *request,
 
         header->version = FF_VERSION_1;
         header->request_id = request_id;
-        header->total_length = request->payload_length;
         header->total_length = request->payload_length;
         header->chunk_offset = chunk_offset;
         packet_length += sizeof(struct __raw_ff_request_header);
@@ -133,17 +135,21 @@ struct ff_client_packet *ff_client_serialize_request(struct ff_request *request,
             packet_length += sizeof(struct __raw_ff_request_option_header);
         }
 
-        uint16_t bytes_left = request->payload_length - chunk_offset;
         uint16_t bytes_left_in_packet = FF_CLIENT_MAX_PACKET_LENGTH - packet_length;
 
         header->chunk_length = bytes_left > bytes_left_in_packet ? bytes_left_in_packet : bytes_left;
 
         memcpy(buffer + packet_length, request->payload->value + header->chunk_offset, header->chunk_length);
         packet_length += header->chunk_length;
+        bytes_left -= header->chunk_length;
+        chunk_offset += header->chunk_length;
+
+        packets[*packet_count].length = packet_length;
+        packets[*packet_count].value = buffer;
         (*packet_count)++;
     }
 
-    ff_log(FF_DEBUG, "Serialized payload in %u packets", *packet_count);
+    ff_log(FF_DEBUG, "Packetised payload into %u packets", *packet_count);
 
     return packets;
 }

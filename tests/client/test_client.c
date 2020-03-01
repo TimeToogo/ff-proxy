@@ -68,3 +68,165 @@ void test_client_read_payload_from_file()
     ff_request_free(request);
     fclose(fd);
 }
+
+void test_client_packetise_request_empty_request()
+{
+    struct ff_request *request = ff_request_alloc();
+    uint16_t packet_count;
+
+    struct ff_client_packet *packets = ff_client_packetise_request(request, &packet_count);
+
+    TEST_ASSERT_EQUAL_MESSAGE(0, packet_count, "packet count check failed");
+
+    ff_request_free(request);
+    FREE(packets);
+}
+
+void test_client_packetise_request_single_packet()
+{
+    char payload[] = "hello world";
+
+    struct ff_request *request = ff_request_alloc();
+
+    request->options = (struct ff_request_option_node **)malloc(sizeof(struct ff_request_option_node *) * 1);
+    request->options[0] = ff_request_option_node_alloc();
+    request->options[0]->type = FF_REQUEST_OPTION_TYPE_EOL;
+    request->options[0]->length = 0;
+    request->options_length++;
+
+    request->payload = ff_request_payload_node_alloc();
+    ff_request_payload_load_buff(request->payload, strlen(payload), payload);
+    request->payload->length = strlen(payload);
+    request->payload_length = strlen(payload);
+
+    uint16_t packet_count;
+
+    struct ff_client_packet *packets = ff_client_packetise_request(request, &packet_count);
+
+    TEST_ASSERT_EQUAL_MESSAGE(1, packet_count, "packet count check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(
+        sizeof(struct __raw_ff_request_header) + request->options_length * sizeof(struct __raw_ff_request_option_header) + strlen(payload),
+        packets[0].length,
+        "payload length check failed");
+
+    struct __raw_ff_request_header *packet_header = (struct __raw_ff_request_header *)packets[0].value;
+
+    TEST_ASSERT_EQUAL_MESSAGE(FF_VERSION_1, packet_header->version, "packet version check failed");
+    TEST_ASSERT_NOT_EQUAL_MESSAGE(0, packet_header->request_id, "packet request id check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(0, packet_header->chunk_offset, "packet chunk offset check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(strlen(payload), packet_header->chunk_length, "packet chunk length check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(strlen(payload), packet_header->total_length, "packet total length check failed");
+
+    struct __raw_ff_request_option_header *option_1 = (struct __raw_ff_request_option_header *)((void *)packet_header + sizeof(struct __raw_ff_request_header));
+
+    TEST_ASSERT_EQUAL_MESSAGE(FF_REQUEST_OPTION_TYPE_EOL, option_1->type, "option (1) type check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(0, option_1->length, "option (1) type check failed");
+
+    uint8_t *packet_payload = (uint8_t *)((void *)option_1 + sizeof(struct __raw_ff_request_option_header));
+
+    TEST_ASSERT_EQUAL_STRING_LEN_MESSAGE(payload, (char *)packet_payload, strlen(payload), "packet payload check failed");
+
+    ff_request_free(request);
+    FREE(packets[0].value);
+    FREE(packets);
+}
+
+void test_client_packetise_request_multiple_packets_with_option()
+{
+    uint8_t payload[2000] = {0};
+    for (size_t i = 0; i < sizeof(payload); i++)
+    {
+        payload[i] = (uint8_t)(i % 255);
+    }
+
+    struct ff_request *request = ff_request_alloc();
+
+    request->options = (struct ff_request_option_node **)malloc(sizeof(struct ff_request_option_node *) * 1);
+    request->options[0] = ff_request_option_node_alloc();
+    request->options[0]->type = FF_REQUEST_OPTION_TYPE_HTTPS;
+    request->options[0]->length = 1;
+    request->options[0]->value = malloc(1);
+    request->options[0]->value[0] = 1;
+    request->options_length++;
+
+    request->options[1] = ff_request_option_node_alloc();
+    request->options[1]->type = FF_REQUEST_OPTION_TYPE_EOL;
+    request->options[1]->length = 0;
+    request->options_length++;
+
+    request->payload = ff_request_payload_node_alloc();
+    ff_request_payload_load_buff(request->payload, sizeof(payload), payload);
+    request->payload->length = sizeof(payload);
+    request->payload_length = sizeof(payload);
+
+    uint16_t packet_count;
+
+    struct ff_client_packet *packets = ff_client_packetise_request(request, &packet_count);
+
+    TEST_ASSERT_EQUAL_MESSAGE(2, packet_count, "packet count check failed");
+
+    // Test packet 1
+    TEST_ASSERT_EQUAL_MESSAGE(
+        FF_CLIENT_MAX_PACKET_LENGTH,
+        packets[0].length,
+        "packet (1) payload length check failed");
+
+    struct __raw_ff_request_header *p1_header = (struct __raw_ff_request_header *)packets[0].value;
+
+    TEST_ASSERT_EQUAL_MESSAGE(FF_VERSION_1, p1_header->version, "packet (1) version check failed");
+    TEST_ASSERT_NOT_EQUAL_MESSAGE(0, p1_header->request_id, "packet (1) request id check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(0, p1_header->chunk_offset, "packet (1) chunk offset check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(
+        FF_CLIENT_MAX_PACKET_LENGTH - sizeof(struct __raw_ff_request_header) - 2 * sizeof(struct __raw_ff_request_option_header) - 1,
+        p1_header->chunk_length,
+        "packet (1) chunk length check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(sizeof(payload), p1_header->total_length, "packet (1) total length check failed");
+
+    struct __raw_ff_request_option_header *p1_option_1 = (struct __raw_ff_request_option_header *)((void *)p1_header + sizeof(struct __raw_ff_request_header));
+
+    TEST_ASSERT_EQUAL_MESSAGE(FF_REQUEST_OPTION_TYPE_HTTPS, p1_option_1->type, "packet (1) option (1) type check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(1, p1_option_1->length, "packet (1) option (1) type check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(1, *((uint8_t *)p1_option_1 + sizeof(struct __raw_ff_request_option_header)), "packet (1) option (1) value check failed");
+
+    struct __raw_ff_request_option_header *p1_option_2 = (struct __raw_ff_request_option_header *)((void *)p1_option_1 + sizeof(struct __raw_ff_request_option_header) + 1);
+
+    TEST_ASSERT_EQUAL_MESSAGE(FF_REQUEST_OPTION_TYPE_EOL, p1_option_2->type, "packet (1) option (2) type check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(0, p1_option_2->length, "packet (1) option (2) type check failed");
+
+    uint8_t *p1_payload = (uint8_t *)((void *)p1_option_2 + sizeof(struct __raw_ff_request_option_header));
+
+    TEST_ASSERT_EQUAL_CHAR_ARRAY_MESSAGE(payload, p1_payload, p1_header->chunk_length, "packet (1) payload check failed");
+
+    // Test packet 2
+    TEST_ASSERT_EQUAL_MESSAGE(
+        sizeof(struct __raw_ff_request_header) + sizeof(struct __raw_ff_request_option_header) + sizeof(payload) - p1_header->chunk_length,
+        packets[1].length,
+        "packet (2) payload length check failed");
+
+    struct __raw_ff_request_header *p2_header = (struct __raw_ff_request_header *)packets[1].value;
+
+    TEST_ASSERT_EQUAL_MESSAGE(FF_VERSION_1, p2_header->version, "packet (2) version check failed");
+    TEST_ASSERT_NOT_EQUAL_MESSAGE(0, p2_header->request_id, "packet (2) request id check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(p1_header->chunk_length, p2_header->chunk_offset, "packet (2) chunk offset check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(
+        sizeof(payload) - p1_header->chunk_length,
+        p2_header->chunk_length,
+        "packet (2) chunk length check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(sizeof(payload), p2_header->total_length, "packet (2) total length check failed");
+
+    struct __raw_ff_request_option_header *p2_option_1 = (struct __raw_ff_request_option_header *)((void *)p2_header + sizeof(struct __raw_ff_request_header));
+
+    TEST_ASSERT_EQUAL_MESSAGE(FF_REQUEST_OPTION_TYPE_EOL, p2_option_1->type, "packet (2) option (1) type check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(0, p2_option_1->length, "packet (2) option (1) type check failed");
+
+    uint8_t *p2_payload = (uint8_t *)((void *)p2_option_1 + sizeof(struct __raw_ff_request_option_header));
+
+    TEST_ASSERT_EQUAL_CHAR_ARRAY_MESSAGE(payload + p1_header->chunk_length, p2_payload, p2_header->chunk_length, "packet (2) payload check failed");
+
+    TEST_ASSERT_EQUAL_MESSAGE(p1_header->request_id, p2_header->request_id, "request ids must match");
+
+    ff_request_free(request);
+    FREE(packets[0].value);
+    FREE(packets[1].value);
+    FREE(packets);
+}
