@@ -230,3 +230,26 @@ void test_client_packetise_request_multiple_packets_with_option()
     FREE(packets[1].value);
     FREE(packets);
 }
+
+void test_client_make_request_http_and_encrypted()
+{
+    char contents[] = "hello world";
+    char *tmp_file = "/tmp/ff_test_file";
+    FILE *fd = fopen(tmp_file, "w+");
+    fwrite(contents, sizeof(contents[0]), sizeof(contents) - 1, fd);
+    fseek(fd, 0, SEEK_SET);
+
+    struct ff_client_config *config = malloc(sizeof(struct ff_client_config));
+    config->https = true;
+    config->encryption_key.key = (uint8_t *)"test key";
+    config->ip_address.s_addr = htonl(INADDR_LOOPBACK);
+    config->port = 12345;
+    config->logging_level = FF_DEBUG;
+
+    int res = ff_client_make_request(config, fd);
+
+    TEST_ASSERT_EQUAL_MESSAGE(0, res, "return value check failed");
+
+    FREE(config);
+    fclose(fd);
+}

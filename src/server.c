@@ -7,6 +7,7 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <pthread.h>
+#include <errno.h>
 #include "server.h"
 #include "server_p.h"
 #include "parser.h"
@@ -54,8 +55,11 @@ int ff_proxy_start(struct ff_config *config)
     bind_address.sin_addr = config->ip_address;
     bind_address.sin_port = htons(config->port);
 
-    bool flag = true;
-    setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(int));
+    int flag = 1;
+    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(flag)) < 0)
+    {
+        ff_log(FF_WARNING, "Failed to set socket option (errno: %d)", errno);
+    }
 
     if (bind(sockfd, (struct sockaddr *)&bind_address, sizeof(bind_address)))
     {

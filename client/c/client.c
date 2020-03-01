@@ -21,27 +21,62 @@ int ff_client_make_request(struct ff_client_config *config, FILE *fd)
     ff_init_openssl();
     ff_log(FF_DEBUG, "Initialised OpenSSL");
 
+    int ret_val = 0;
+
     struct ff_request *request = ff_request_alloc();
     request->options = malloc(sizeof(struct ff_request_option_node *) * FF_REQUEST_MAX_OPTIONS);
     request->payload = ff_request_payload_node_alloc();
+
+    uint16_t packet_count = 0;
+    struct ff_client_packet *packets = NULL;
 
     ff_client_read_payload_from_file(request, fd);
 
     if (config->encryption_key.key != NULL)
     {
-        ff_client_encrypt_request(request, &config->encryption_key);
-        ff_log(FF_DEBUG, "Encrypted payload using pre-shared key");
+        if (!ff_client_encrypt_request(request, &config->encryption_key))
+        {
+            ff_log(FF_ERROR, "Failed to encrypt payload");
+            goto error;
+        }
+
+        ff_log(FF_DEBUG, "Encrypted payload using pre-shared key (ciphertext length: %u)", request->payload_length);
+    }
+
+    if (config->https)
+    {
+        request->options[request->options_length] = ff_request_option_node_alloc();
+        request->options[request->options_length]->type = FF_REQUEST_OPTION_TYPE_HTTPS;
+        request->options[request->options_length]->length = 1;
+        request->options[request->options_length]->value = malloc(1);
+        request->options[request->options_length]->value[0] = 1;
+        request->options_length++;
     }
 
     request->options[request->options_length] = ff_request_option_node_alloc();
     request->options[request->options_length]->type = FF_REQUEST_OPTION_TYPE_EOL;
     request->options_length++;
 
-    uint16_t packet_count;
-    struct ff_client_packet *packets = ff_client_packetise_request(request, &packet_count);
+    packets = ff_client_packetise_request(request, &packet_count);
 
-    int ret_val = ff_client_send_request(config, packets, packet_count);
+    if (!ff_client_send_request(config, packets, packet_count))
+    {
+        goto done;
+    }
+    else
+    {
+        goto error;
+    }
 
+done:
+    ret_val = 0;
+    goto cleanup;
+
+error:
+    ret_val = 1;
+    goto cleanup;
+
+cleanup:
     ff_request_free(request);
 
     for (uint16_t i = 0; i < packet_count; i++)
@@ -189,12 +224,20 @@ uint8_t ff_client_send_request(struct ff_client_config *config, struct ff_client
 {
     uint8_t ret;
     int sockfd;
-    struct sockaddr_in bind_address;
+    struct sockaddr_in bind_address, to_address;
 
     int sent_length = 0;
     int chunk_length = 0;
 
     char ip_string[INET6_ADDRSTRLEN + 1] = {0};
+
+    to_address.sin_family = AF_INET;
+    to_address.sin_addr = config->ip_address;
+    to_address.sin_port = htons(config->port);
+
+    bind_address.sin_family = AF_INET;
+    bind_address.sin_addr.s_addr = INADDR_ANY;
+    bind_address.sin_port = 0; // ephemeral port
 
     ff_log(FF_DEBUG, "Creating socket");
     sockfd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -208,20 +251,16 @@ uint8_t ff_client_send_request(struct ff_client_config *config, struct ff_client
     inet_ntop(AF_INET, &config->ip_address, ip_string, sizeof(ip_string));
     ff_log(FF_INFO, "Sending request to %.16s:%d", ip_string, config->port);
 
-    ff_log(FF_DEBUG, "Binding to address");
-    bind_address.sin_family = AF_INET;
-    bind_address.sin_addr = config->ip_address;
-    bind_address.sin_port = htons(config->port);
-
-    bool flag = true;
-    if (!setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(flag)))
+    int flag = true;
+    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(flag)) < 0)
     {
-        ff_log(FF_WARNING, "Failed to set socket option");
+        ff_log(FF_WARNING, "Failed to set socket option (errno: %d)", errno);
     }
 
+    ff_log(FF_DEBUG, "Binding to address");
     if (bind(sockfd, (struct sockaddr *)&bind_address, sizeof(bind_address)))
     {
-        ff_log(FF_FATAL, "Failed to bind to address");
+        ff_log(FF_FATAL, "Failed to bind to address (errno: %d)", errno);
         goto error;
     }
 
@@ -229,7 +268,7 @@ uint8_t ff_client_send_request(struct ff_client_config *config, struct ff_client
     {
         do
         {
-            chunk_length = sendto(sockfd, packets[i].value + sent_length, packets[i].length, 0, (struct sockaddr *)&bind_address, sizeof(bind_address));
+            chunk_length = sendto(sockfd, packets[i].value + sent_length, packets[i].length, 0, (struct sockaddr *)&to_address, sizeof(to_address));
 
             if (chunk_length <= 0)
             {

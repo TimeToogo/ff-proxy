@@ -148,7 +148,7 @@ bool ff_http_send_request_unencrypted(struct ff_request *request, char *host_nam
         sent += chunk;
     } while (sent < request->payload_length);
 
-    ff_log(FF_DEBUG, "Finished sending request to %s (%d bytes sent)", host_name, sent);
+    ff_log(FF_DEBUG, "Finished sending request to %s over HTTP (%d bytes sent)", host_name, sent);
 
     do
     {
@@ -316,7 +316,7 @@ bool ff_http_send_request_tls(struct ff_request *request, char *host_name)
         sent += chunk;
     } while (chunk > 0);
 
-    ff_log(FF_DEBUG, "Finished sending request to %s (%d bytes sent)", host_name, sent);
+    ff_log(FF_DEBUG, "Finished sending request to %s over HTTPS (%d bytes sent)", host_name, sent);
 
     do
     {

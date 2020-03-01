@@ -29,7 +29,7 @@ bool ff_client_encrypt_request(struct ff_request *request, struct ff_encryption_
         goto error;
     }
 
- request->options[request->options_length] = ff_request_option_node_alloc();
+    request->options[request->options_length] = ff_request_option_node_alloc();
     request->options[request->options_length]->type = FF_REQUEST_OPTION_TYPE_ENCRYPTION_MODE;
     request->options[request->options_length]->length = 1;
     ff_request_option_load_buff(request->options[request->options_length], 1, &encryption_mode);
@@ -143,15 +143,13 @@ bool ff_client_encrypt_request_aes_256_gcm(
 
     ciphertext_len += len;
     *tag_len = 16;
-    *tag = (uint8_t*)calloc(1, 16);
+    *tag = (uint8_t *)calloc(1, 16);
 
     if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, *tag_len, *tag))
     {
         ff_log(FF_ERROR, "Failed to get cipher tag");
         goto error;
     }
-
-    request->payload_length = ciphertext_len;
 
     payload_chunk = request->payload;
     struct ff_request_payload_node *tmp_payload;
@@ -168,6 +166,7 @@ bool ff_client_encrypt_request_aes_256_gcm(
     request->payload->offset = 0;
     request->payload->next = NULL;
     request->payload->value = ciphertext_buff;
+    request->payload_length = ciphertext_len;
     goto done;
 
 error:

@@ -118,6 +118,7 @@ int main(void)
     RUN_TEST(test_client_packetise_request_empty_request);
     RUN_TEST(test_client_packetise_request_single_packet);
     RUN_TEST(test_client_packetise_request_multiple_packets_with_option);
+    RUN_TEST(test_client_make_request_http_and_encrypted);
 
     RUN_TEST(test_log_debug);
     return UNITY_END();
