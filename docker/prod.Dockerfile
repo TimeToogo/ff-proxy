@@ -16,5 +16,6 @@ FROM alpine:latest
 RUN apk add --update openssl
 
 COPY --from=build /usr/local/bin/ff /usr/local/bin/ff
+COPY --from=build /usr/local/bin/ff_client /usr/local/bin/ff_client
 
 ENTRYPOINT [ "ff" ]
