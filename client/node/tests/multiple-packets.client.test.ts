@@ -35,7 +35,7 @@ describe("FfClient", () => {
     expect(packets[0].payload[ptr++]).toEqual(0);
 
     // Request ID (int64)
-    const packet1RequestId = 
+    const packet1RequestId = packets[0].payload.slice(ptr, ptr + 8);
     ptr += 8;
 
     // Total Length (int32)
@@ -80,55 +80,49 @@ describe("FfClient", () => {
 
     // ==== Packet 2 =====
 
-    expect(packets[0].length).toEqual(755);
+    expect(packets[1].length).toEqual(750);
 
     ptr = 0;
 
     // Version (int16)
-    expect(packets[0].payload[ptr++]).toEqual(FfRequestVersion.VERSION_1);
-    expect(packets[0].payload[ptr++]).toEqual(0);
-
+    expect(packets[1].payload[ptr++]).toEqual(FfRequestVersion.VERSION_1);
+    expect(packets[1].payload[ptr++]).toEqual(0);
+    
     // Request ID (int64)
+    const packet2RequestId = packets[1].payload.slice(ptr, ptr + 8);
+    expect(packet1RequestId).toEqual(packet2RequestId);
     ptr += 8;
-
+    
     // Total Length (int32)
     expect(
-      (packets[0].payload[ptr++] << 24) +
-        (packets[0].payload[ptr++] << 16) +
-        (packets[0].payload[ptr++] << 8) +
-        (packets[0].payload[ptr++] << 0)
+      (packets[1].payload[ptr++] << 24) +
+        (packets[1].payload[ptr++] << 16) +
+        (packets[1].payload[ptr++] << 8) +
+        (packets[1].payload[ptr++] << 0)
     ).toEqual(request.length);
-
+    
     // Chunk Offset (int32)
     expect(
-      (packets[0].payload[ptr++] << 24) +
-        (packets[0].payload[ptr++] << 16) +
-        (packets[0].payload[ptr++] << 8) +
-        (packets[0].payload[ptr++] << 0)
-    ).toEqual(0);
-
+      (packets[1].payload[ptr++] << 24) +
+        (packets[1].payload[ptr++] << 16) +
+        (packets[1].payload[ptr++] << 8) +
+        (packets[1].payload[ptr++] << 0)
+    ).toEqual(1273);
+    
     // Chunk Length (int16)
     expect(
-      (packets[0].payload[ptr++] << 8) + (packets[0].payload[ptr++] << 0)
-    ).toEqual(1273);
-
-    // HTTPS Option
-    expect(packets[0].payload[ptr++]).toEqual(FfRequestOptionType.HTTPS);
-    // Option length (int16)
-    expect(
-      (packets[0].payload[ptr++] << 8) + (packets[0].payload[ptr++] << 0)
-    ).toEqual(1);
-    expect(packets[0].payload[ptr++]).toEqual(1);
-
+      (packets[1].payload[ptr++] << 8) + (packets[1].payload[ptr++] << 0)
+    ).toEqual(2000 - 1273);
+    
     // EOL Option
-    expect(packets[0].payload[ptr++]).toEqual(FfRequestOptionType.EOL);
+    expect(packets[1].payload[ptr++]).toEqual(FfRequestOptionType.EOL);
     // Option length (int16)
     expect(
-      (packets[0].payload[ptr++] << 8) + (packets[0].payload[ptr++] << 0)
+      (packets[1].payload[ptr++] << 8) + (packets[1].payload[ptr++] << 0)
     ).toEqual(0);
-
-    for (let i = 0; i < 1273; i++) {
-      expect(packets[0].payload[ptr++]).toEqual(request[i]);
+    
+    for (let i = 1273; i < 2000; i++) {
+      expect(packets[1].payload[ptr++]).toEqual(request[i]);
     }
   });
 });
