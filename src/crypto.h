@@ -5,7 +5,10 @@
 #ifndef FF_CRYPTO_H
 #define FF_CRYPTO_H
 
-#define FF_CRYPTO_MODE_AES_256_GCM 1
+enum ff_request_encryption_type
+{
+    FF_CRYPTO_MODE_AES_256_GCM = 1
+};
 
 struct ff_encryption_key
 {

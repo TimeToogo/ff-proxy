@@ -86,4 +86,6 @@ Network Trash Folder
 Temporary Items
 .apdisk
 
-# End of https://www.gitignore.io/api/c,macos
+# node
+node_modules/
+dist/
