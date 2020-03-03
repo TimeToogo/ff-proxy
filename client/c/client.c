@@ -142,10 +142,10 @@ struct ff_client_packet *ff_client_packetise_request(struct ff_request *request,
         uint16_t packet_length = 0;
         struct __raw_ff_request_header *header = (struct __raw_ff_request_header *)buffer;
 
-        header->version = FF_VERSION_1;
-        header->request_id = request_id;
-        header->total_length = request->payload_length;
-        header->chunk_offset = chunk_offset;
+        header->version = htons(FF_VERSION_1);
+        header->request_id = htonll(request_id);
+        header->total_length = htonl(request->payload_length);
+        header->chunk_offset = htonl(chunk_offset);
         packet_length += sizeof(struct __raw_ff_request_header);
 
         if (*packet_count == 0)
@@ -155,7 +155,7 @@ struct ff_client_packet *ff_client_packetise_request(struct ff_request *request,
             {
                 struct __raw_ff_request_option_header *option_header = (struct __raw_ff_request_option_header *)(buffer + packet_length);
                 option_header->type = request->options[i]->type;
-                option_header->length = request->options[i]->length;
+                option_header->length = htons(request->options[i]->length);
                 packet_length += sizeof(struct __raw_ff_request_option_header);
                 memcpy(buffer + packet_length, request->options[i]->value, request->options[i]->length);
                 packet_length += request->options[i]->length;
@@ -171,13 +171,14 @@ struct ff_client_packet *ff_client_packetise_request(struct ff_request *request,
         }
 
         uint16_t bytes_left_in_packet = FF_CLIENT_MAX_PACKET_LENGTH - packet_length;
+        uint16_t chunk_length = bytes_left > bytes_left_in_packet ? bytes_left_in_packet : bytes_left;
 
-        header->chunk_length = bytes_left > bytes_left_in_packet ? bytes_left_in_packet : bytes_left;
+        header->chunk_length = htons(chunk_length);
 
-        memcpy(buffer + packet_length, request->payload->value + header->chunk_offset, header->chunk_length);
-        packet_length += header->chunk_length;
-        bytes_left -= header->chunk_length;
-        chunk_offset += header->chunk_length;
+        memcpy(buffer + packet_length, request->payload->value + chunk_offset, chunk_length);
+        packet_length += chunk_length;
+        bytes_left -= chunk_length;
+        chunk_offset += chunk_length;
 
         packets[*packet_count].length = packet_length;
         packets[*packet_count].value = buffer;

@@ -19,7 +19,7 @@ void test_client_send_request_no_packets()
 
     struct ff_client_config config =
         {
-            .ip_address = {.s_addr = htonl(INADDR_LOOPBACK)},
+            .ip_address = {.s_addr = ntohl(INADDR_LOOPBACK)},
             .port = 8088,
         };
 
@@ -40,7 +40,7 @@ void test_client_send_request_two_packets()
 
     struct ff_client_config config =
         {
-            .ip_address = {.s_addr = htonl(INADDR_LOOPBACK)},
+            .ip_address = {.s_addr = ntohl(INADDR_LOOPBACK)},
             .port = 8088,
         };
 
@@ -111,16 +111,16 @@ void test_client_packetise_request_single_packet()
 
     struct __raw_ff_request_header *packet_header = (struct __raw_ff_request_header *)packets[0].value;
 
-    TEST_ASSERT_EQUAL_MESSAGE(FF_VERSION_1, packet_header->version, "packet version check failed");
-    TEST_ASSERT_NOT_EQUAL_MESSAGE(0, packet_header->request_id, "packet request id check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(0, packet_header->chunk_offset, "packet chunk offset check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(strlen(payload), packet_header->chunk_length, "packet chunk length check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(strlen(payload), packet_header->total_length, "packet total length check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(FF_VERSION_1, ntohs(packet_header->version), "packet version check failed");
+    TEST_ASSERT_NOT_EQUAL_MESSAGE(0, ntohll(packet_header->request_id), "packet request id check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(0, ntohl(packet_header->chunk_offset), "packet chunk offset check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(strlen(payload), ntohs(packet_header->chunk_length), "packet chunk length check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(strlen(payload), ntohl(packet_header->total_length), "packet total length check failed");
 
     struct __raw_ff_request_option_header *option_1 = (struct __raw_ff_request_option_header *)((void *)packet_header + sizeof(struct __raw_ff_request_header));
 
     TEST_ASSERT_EQUAL_MESSAGE(FF_REQUEST_OPTION_TYPE_EOL, option_1->type, "option (1) type check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(0, option_1->length, "option (1) type check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(0, ntohs(option_1->length), "option (1) type check failed");
 
     uint8_t *packet_payload = (uint8_t *)((void *)option_1 + sizeof(struct __raw_ff_request_option_header));
 
@@ -173,57 +173,57 @@ void test_client_packetise_request_multiple_packets_with_option()
 
     struct __raw_ff_request_header *p1_header = (struct __raw_ff_request_header *)packets[0].value;
 
-    TEST_ASSERT_EQUAL_MESSAGE(FF_VERSION_1, p1_header->version, "packet (1) version check failed");
-    TEST_ASSERT_NOT_EQUAL_MESSAGE(0, p1_header->request_id, "packet (1) request id check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(0, p1_header->chunk_offset, "packet (1) chunk offset check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(FF_VERSION_1, ntohs(p1_header->version), "packet (1) version check failed");
+    TEST_ASSERT_NOT_EQUAL_MESSAGE(0, ntohll(p1_header->request_id), "packet (1) request id check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(0, ntohl(p1_header->chunk_offset), "packet (1) chunk offset check failed");
     TEST_ASSERT_EQUAL_MESSAGE(
         FF_CLIENT_MAX_PACKET_LENGTH - sizeof(struct __raw_ff_request_header) - 2 * sizeof(struct __raw_ff_request_option_header) - 1,
-        p1_header->chunk_length,
+        ntohs(p1_header->chunk_length),
         "packet (1) chunk length check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(sizeof(payload), p1_header->total_length, "packet (1) total length check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(sizeof(payload), ntohl(p1_header->total_length), "packet (1) total length check failed");
 
     struct __raw_ff_request_option_header *p1_option_1 = (struct __raw_ff_request_option_header *)((void *)p1_header + sizeof(struct __raw_ff_request_header));
 
     TEST_ASSERT_EQUAL_MESSAGE(FF_REQUEST_OPTION_TYPE_HTTPS, p1_option_1->type, "packet (1) option (1) type check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(1, p1_option_1->length, "packet (1) option (1) type check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(1, ntohs(p1_option_1->length), "packet (1) option (1) type check failed");
     TEST_ASSERT_EQUAL_MESSAGE(1, *((uint8_t *)p1_option_1 + sizeof(struct __raw_ff_request_option_header)), "packet (1) option (1) value check failed");
 
     struct __raw_ff_request_option_header *p1_option_2 = (struct __raw_ff_request_option_header *)((void *)p1_option_1 + sizeof(struct __raw_ff_request_option_header) + 1);
 
     TEST_ASSERT_EQUAL_MESSAGE(FF_REQUEST_OPTION_TYPE_EOL, p1_option_2->type, "packet (1) option (2) type check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(0, p1_option_2->length, "packet (1) option (2) type check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(0, ntohs(p1_option_2->length), "packet (1) option (2) type check failed");
 
     uint8_t *p1_payload = (uint8_t *)((void *)p1_option_2 + sizeof(struct __raw_ff_request_option_header));
 
-    TEST_ASSERT_EQUAL_CHAR_ARRAY_MESSAGE(payload, p1_payload, p1_header->chunk_length, "packet (1) payload check failed");
+    TEST_ASSERT_EQUAL_CHAR_ARRAY_MESSAGE(payload, p1_payload, ntohs(p1_header->chunk_length), "packet (1) payload check failed");
 
     // Test packet 2
     TEST_ASSERT_EQUAL_MESSAGE(
-        sizeof(struct __raw_ff_request_header) + sizeof(struct __raw_ff_request_option_header) + sizeof(payload) - p1_header->chunk_length,
+        sizeof(struct __raw_ff_request_header) + sizeof(struct __raw_ff_request_option_header) + sizeof(payload) - ntohs(p1_header->chunk_length),
         packets[1].length,
         "packet (2) payload length check failed");
 
     struct __raw_ff_request_header *p2_header = (struct __raw_ff_request_header *)packets[1].value;
 
-    TEST_ASSERT_EQUAL_MESSAGE(FF_VERSION_1, p2_header->version, "packet (2) version check failed");
-    TEST_ASSERT_NOT_EQUAL_MESSAGE(0, p2_header->request_id, "packet (2) request id check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(p1_header->chunk_length, p2_header->chunk_offset, "packet (2) chunk offset check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(FF_VERSION_1, ntohs(p2_header->version), "packet (2) version check failed");
+    TEST_ASSERT_NOT_EQUAL_MESSAGE(0, ntohll(p2_header->request_id), "packet (2) request id check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(ntohs(p1_header->chunk_length), ntohl(p2_header->chunk_offset), "packet (2) chunk offset check failed");
     TEST_ASSERT_EQUAL_MESSAGE(
-        sizeof(payload) - p1_header->chunk_length,
-        p2_header->chunk_length,
+        sizeof(payload) - ntohs(p1_header->chunk_length),
+        ntohs(p2_header->chunk_length),
         "packet (2) chunk length check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(sizeof(payload), p2_header->total_length, "packet (2) total length check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(sizeof(payload), ntohl(p2_header->total_length), "packet (2) total length check failed");
 
     struct __raw_ff_request_option_header *p2_option_1 = (struct __raw_ff_request_option_header *)((void *)p2_header + sizeof(struct __raw_ff_request_header));
 
     TEST_ASSERT_EQUAL_MESSAGE(FF_REQUEST_OPTION_TYPE_EOL, p2_option_1->type, "packet (2) option (1) type check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(0, p2_option_1->length, "packet (2) option (1) type check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(0, ntohs(p2_option_1->length), "packet (2) option (1) type check failed");
 
     uint8_t *p2_payload = (uint8_t *)((void *)p2_option_1 + sizeof(struct __raw_ff_request_option_header));
 
-    TEST_ASSERT_EQUAL_CHAR_ARRAY_MESSAGE(payload + p1_header->chunk_length, p2_payload, p2_header->chunk_length, "packet (2) payload check failed");
+    TEST_ASSERT_EQUAL_CHAR_ARRAY_MESSAGE(payload + ntohs(p1_header->chunk_length), p2_payload, ntohs(p2_header->chunk_length), "packet (2) payload check failed");
 
-    TEST_ASSERT_EQUAL_MESSAGE(p1_header->request_id, p2_header->request_id, "request ids must match");
+    TEST_ASSERT_EQUAL_MESSAGE(ntohll(p1_header->request_id), ntohll(p2_header->request_id), "request ids must match");
 
     ff_request_free(request);
     FREE(packets[0].value);
@@ -242,7 +242,7 @@ void test_client_make_request_http_and_encrypted()
     struct ff_client_config *config = malloc(sizeof(struct ff_client_config));
     config->https = true;
     config->encryption_key.key = (uint8_t *)"test key";
-    config->ip_address.s_addr = htonl(INADDR_LOOPBACK);
+    config->ip_address.s_addr = ntohl(INADDR_LOOPBACK);
     config->port = 12345;
     config->logging_level = FF_DEBUG;
 

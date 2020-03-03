@@ -48,15 +48,15 @@ void test_request_parse_v1_single_chunk()
     char *http_request = "POST / HTTP/1.1\nHost: stackoverflow.com\n\nSome\nTest\nData";
 
     struct __raw_ff_request_header header = {
-        .version = FF_VERSION_1,
-        .request_id = 1234568,
-        .total_length = strlen(http_request),
-        .chunk_offset = 0,
-        .chunk_length = strlen(http_request)};
+        .version = htons(FF_VERSION_1),
+        .request_id = htonll(1234568),
+        .total_length = htonl(strlen(http_request)),
+        .chunk_offset = htonl(0),
+        .chunk_length = htons(strlen(http_request))};
 
     struct __raw_ff_request_option_header eol_option = {
         .type = FF_REQUEST_OPTION_TYPE_EOL,
-        .length = 0};
+        .length = htons(0)};
 
     int chunk_length = sizeof(header) + sizeof(eol_option) + strlen(http_request);
 
@@ -89,27 +89,27 @@ void test_request_parse_v1_multiple_chunks()
     char *chunk_1_http_request = "POST / HTTP/1.1\nHost: stackoverflow.com\n\n";
     char *chunk_2_http_request = "Some\nBody\nData";
 
-    char *full_http_request = (char*)calloc(1, strlen(chunk_1_http_request) + strlen(chunk_2_http_request) + 1);
+    char *full_http_request = (char *)calloc(1, strlen(chunk_1_http_request) + strlen(chunk_2_http_request) + 1);
     strcat(full_http_request, chunk_1_http_request);
     strcat(full_http_request, chunk_2_http_request);
 
     struct __raw_ff_request_header chunk_1_header = {
-        .version = FF_VERSION_1,
-        .request_id = 1234568,
-        .total_length = strlen(chunk_1_http_request) + strlen(chunk_2_http_request),
-        .chunk_offset = 0,
-        .chunk_length = strlen(chunk_1_http_request)};
+        .version = htons(FF_VERSION_1),
+        .request_id = htonll(1234568),
+        .total_length = htonl(strlen(chunk_1_http_request) + strlen(chunk_2_http_request)),
+        .chunk_offset = htonl(0),
+        .chunk_length = htons(strlen(chunk_1_http_request))};
 
     struct __raw_ff_request_header chunk_2_header = {
-        .version = FF_VERSION_1,
-        .request_id = 1234568,
-        .total_length = strlen(chunk_1_http_request) + strlen(chunk_2_http_request),
-        .chunk_offset = strlen(chunk_1_http_request),
-        .chunk_length = strlen(chunk_2_http_request)};
+        .version = htons(FF_VERSION_1),
+        .request_id = htonll(1234568),
+        .total_length = htonl(strlen(chunk_1_http_request) + strlen(chunk_2_http_request)),
+        .chunk_offset = htonl(strlen(chunk_1_http_request)),
+        .chunk_length = htons(strlen(chunk_2_http_request))};
 
     struct __raw_ff_request_option_header eol_option = {
         .type = FF_REQUEST_OPTION_TYPE_EOL,
-        .length = 0};
+        .length = htons(0)};
 
     int chunk_1_length = sizeof(chunk_1_header) + sizeof(eol_option) + strlen(chunk_1_http_request);
     int chunk_2_length = sizeof(chunk_2_header) + sizeof(eol_option) + strlen(chunk_2_http_request);
@@ -158,7 +158,7 @@ void test_request_vectorise_payload()
     char *chunk_1 = "chunk1";
     char *chunk_2 = "chunk2";
 
-    char *full_payload = (char*)calloc(1, strlen(chunk_1) + strlen(chunk_2) + 1);
+    char *full_payload = (char *)calloc(1, strlen(chunk_1) + strlen(chunk_2) + 1);
     strcat(full_payload, chunk_1);
     strcat(full_payload, chunk_2);
 
@@ -189,19 +189,19 @@ void test_request_parse_v1_single_chunk_with_options()
     char *http_request = "POST / HTTP/1.1\nHost: stackoverflow.com\n\nSome\nTest\nData";
 
     struct __raw_ff_request_header header = {
-        .version = FF_VERSION_1,
-        .request_id = 1234568,
-        .total_length = strlen(http_request),
-        .chunk_offset = 0,
-        .chunk_length = strlen(http_request)};
+        .version = htons(FF_VERSION_1),
+        .request_id = htonll(1234568),
+        .total_length = htonl(strlen(http_request)),
+        .chunk_offset = htonl(0),
+        .chunk_length = htons(strlen(http_request))};
 
     struct __raw_ff_request_option_header checksum_option = {
         .type = FF_REQUEST_OPTION_TYPE_ENCRYPTION_IV,
-        .length = 3};
+        .length = htons(3)};
 
     struct __raw_ff_request_option_header eol_option = {
         .type = FF_REQUEST_OPTION_TYPE_EOL,
-        .length = 0};
+        .length = htons(0)};
 
     int chunk_length = sizeof(header) + sizeof(checksum_option) + 3 + sizeof(eol_option) + strlen(http_request);
 
@@ -252,8 +252,8 @@ void test_ff_request_parse_id_raw_http()
 void test_ff_request_parse_id()
 {
     struct __raw_ff_request_header header = {
-        .version = FF_VERSION_1,
-        .request_id = 1234568,
+        .version = htons(FF_VERSION_1),
+        .request_id = htonll(1234568),
         .total_length = 0,
         .chunk_offset = 0,
         .chunk_length = 0};

@@ -33,7 +33,7 @@ uint64_t ff_request_parse_id(uint32_t buff_size, void *buff)
     else
     {
         struct __raw_ff_request_header *header = (struct __raw_ff_request_header *)buff;
-        return header->request_id;
+        return ntohll(header->request_id);
     }
 }
 
@@ -77,9 +77,9 @@ void ff_request_parse_first_chunk(struct ff_request *request, uint32_t buff_size
     }
 
     struct __raw_ff_request_header *header = (struct __raw_ff_request_header *)buff;
-    request->version = header->version;
-    request->request_id = header->request_id;
-    request->payload_length = header->total_length;
+    request->version = ntohs(header->version);
+    request->request_id = ntohll(header->request_id);
+    request->payload_length = ntohl(header->total_length);
     ff_request_parse_data_chunk(request, buff_size, buff);
 }
 
@@ -108,6 +108,13 @@ void ff_request_parse_data_chunk(struct ff_request *request, uint32_t buff_size,
     struct __raw_ff_request_header *header = (struct __raw_ff_request_header *)buff;
     i += sizeof(struct __raw_ff_request_header);
 
+    // Normalise endianess
+    uint16_t version = ntohs(header->version);
+    uint64_t request_id = ntohll(header->request_id);
+    uint32_t total_length = ntohl(header->total_length);
+    uint32_t chunk_offset = ntohl(header->chunk_offset);
+    uint16_t chunk_length = ntohs(header->chunk_length);
+
     if (request->version != FF_VERSION_1)
     {
         ff_log(FF_WARNING, "Request received with unknown version flag %d", request->version);
@@ -115,28 +122,28 @@ void ff_request_parse_data_chunk(struct ff_request *request, uint32_t buff_size,
         return;
     }
 
-    if (header->version != request->version)
+    if (version != request->version)
     {
-        ff_log(FF_WARNING, "Mismatch between request version (%d) and chunk version (%d)", request->version, header->version);
+        ff_log(FF_WARNING, "Mismatch between request version (%d) and chunk version (%d)", request->version, version);
         request->state = FF_REQUEST_STATE_RECEIVING_FAIL;
         return;
     }
 
-    if (header->request_id != request->request_id)
+    if (request_id != request->request_id)
     {
-        ff_log(FF_WARNING, "Mismatch between request ID (%d) and chunk ID (%d)", request->request_id, header->request_id);
+        ff_log(FF_WARNING, "Mismatch between request ID (%d) and chunk ID (%d)", request->request_id, request_id);
         request->state = FF_REQUEST_STATE_RECEIVING_FAIL;
         return;
     }
 
-    if (header->total_length != request->payload_length)
+    if (total_length != request->payload_length)
     {
-        ff_log(FF_WARNING, "Mismatch between request length (%d) and chunk length (%d)", request->payload_length, header->total_length);
+        ff_log(FF_WARNING, "Mismatch between request length (%d) and chunk length (%d)", request->payload_length, total_length);
         request->state = FF_REQUEST_STATE_RECEIVING_FAIL;
         return;
     }
 
-    if (header->chunk_offset + header->chunk_length > request->payload_length)
+    if (chunk_offset + chunk_length > request->payload_length)
     {
         ff_log(FF_WARNING, "Chunk offset and length too long");
         request->state = FF_REQUEST_STATE_RECEIVING_FAIL;
@@ -177,6 +184,9 @@ void ff_request_parse_data_chunk(struct ff_request *request, uint32_t buff_size,
 
             option_header = (struct __raw_ff_request_option_header *)(buff + i);
 
+            // Normalise endianess
+            uint16_t option_length = ntohs(option_header->length);
+
             i += sizeof(struct __raw_ff_request_option_header);
 
             if (option_header->type == FF_REQUEST_OPTION_TYPE_EOL)
@@ -184,7 +194,7 @@ void ff_request_parse_data_chunk(struct ff_request *request, uint32_t buff_size,
                 break;
             }
 
-            if (buff_size < i + option_header->length)
+            if (buff_size < i + option_length)
             {
                 ff_log(FF_WARNING, "Packet buffer ran out while processing TLV options");
                 request->state = FF_REQUEST_STATE_RECEIVING_FAIL;
@@ -193,13 +203,13 @@ void ff_request_parse_data_chunk(struct ff_request *request, uint32_t buff_size,
 
             options[options_i] = ff_request_option_node_alloc();
             options[options_i]->type = option_header->type;
-            options[options_i]->length = option_header->length;
+            options[options_i]->length = option_length;
             ff_request_option_load_buff(
                 options[options_i],
-                option_header->length,
+                option_length,
                 buff + i);
 
-            i += option_header->length;
+            i += option_length;
             options_i++;
         }
 
@@ -224,16 +234,17 @@ void ff_request_parse_data_chunk(struct ff_request *request, uint32_t buff_size,
         }
     }
 
-    if (buff_size < i + header->chunk_length)
+    if (buff_size < i + chunk_length)
     {
-        ff_log(FF_WARNING, "Packet buffer ran out while receiving payload");
+        ff_log(FF_WARNING, "Packet buffer ran out while receiving payload. Expected %hu bytes, %u bytes remain", header->chunk_length, buff_size - i);
         request->state = FF_REQUEST_STATE_RECEIVING_FAIL;
         return;
     }
 
     struct ff_request_payload_node *node = ff_request_payload_node_alloc();
-    node->offset = header->chunk_offset;
-    node->length = header->chunk_length;
+    node->offset = chunk_offset;
+    node->length = chunk_length;
+
     ff_request_payload_load_buff(
         node,
         buff_size - i,
@@ -253,7 +264,10 @@ void ff_request_parse_data_chunk(struct ff_request *request, uint32_t buff_size,
             bool overlapsExistingNode = node->offset < current_node->offset + current_node->length && current_node->offset <= node->offset + node->length;
             if (overlapsExistingNode)
             {
-                ff_log(FF_WARNING, "Received chunk range overlaps existing data");
+                ff_log(FF_WARNING,
+                       "Received chunk range overlaps existing data. Received byte range [%u, %u] intersects existing range [%u, %u]",
+                       node->offset, node->offset + node->length,
+                       current_node->offset, current_node->offset + current_node->length);
                 request->state = FF_REQUEST_STATE_RECEIVING_FAIL;
                 return;
             }
@@ -278,7 +292,8 @@ void ff_request_parse_data_chunk(struct ff_request *request, uint32_t buff_size,
 
 void ff_request_vectorise_payload(struct ff_request *request)
 {
-    if (request->payload->next == NULL) {
+    if (request->payload->next == NULL)
+    {
         return;
     }
 
