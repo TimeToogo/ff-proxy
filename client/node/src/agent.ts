@@ -3,17 +3,21 @@ import dgram from "dgram";
 import net from "net";
 import createDebug from "debug";
 import { Agent, ClientRequest, RequestOptions } from "agent-base";
+import FfClient, { FfClientOptions } from "./client";
+import { TcpToFfSocket, TcpToFfSocketOptions } from "./tcp-to-ff-socket";
 
 const debug = createDebug("ff-client");
 
-export interface FfClientAgentOptions {
-  ipAddress: string;
-  port: number;
-}
+export interface FfClientAgentOptions
+  extends FfClientOptions,
+    TcpToFfSocketOptions {}
 
-export default class FfClientAgent extends Agent {
+export class FfClientAgent extends Agent {
+  public readonly ffClient: FfClient;
+
   constructor(private readonly options: FfClientAgentOptions) {
     super();
+    this.ffClient = new FfClient(options);
   }
 
   /**
@@ -23,14 +27,11 @@ export default class FfClientAgent extends Agent {
     req: ClientRequest,
     opts: RequestOptions
   ): Promise<net.Socket> {
-    const socket = dgram.createSocket({
-        type: "udp4",
-        reuseAddr: true
+    const socket = new TcpToFfSocket(this.ffClient, {
+      https: this.options.https,
+      mockResponse: this.options.mockResponse
     });
 
-    socket.bind(this.options.port, this.options.ipAddress);
-
-    socket.
-    return socket;
+    return socket as net.Socket;
   }
 }

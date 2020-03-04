@@ -179,8 +179,8 @@ export default class FfClient {
 
       // -- Request header --
       // Version (int16)
-      packetBuff[ptr++] = FfRequestVersion.VERSION_1;
       packetBuff[ptr++] = 0;
+      packetBuff[ptr++] = FfRequestVersion.VERSION_1;
       // Request ID (int64)
       for (let i = 0; i < 8; i++) {
         packetBuff[ptr++] = request.requestId[i];

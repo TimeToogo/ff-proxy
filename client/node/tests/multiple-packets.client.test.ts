@@ -31,8 +31,8 @@ describe("FfClient", () => {
     let ptr = 0;
 
     // Version (int16)
-    expect(packets[0].payload[ptr++]).toEqual(FfRequestVersion.VERSION_1);
     expect(packets[0].payload[ptr++]).toEqual(0);
+    expect(packets[0].payload[ptr++]).toEqual(FfRequestVersion.VERSION_1);
 
     // Request ID (int64)
     const packet1RequestId = packets[0].payload.slice(ptr, ptr + 8);
@@ -85,8 +85,8 @@ describe("FfClient", () => {
     ptr = 0;
 
     // Version (int16)
-    expect(packets[1].payload[ptr++]).toEqual(FfRequestVersion.VERSION_1);
     expect(packets[1].payload[ptr++]).toEqual(0);
+    expect(packets[1].payload[ptr++]).toEqual(FfRequestVersion.VERSION_1);
     
     // Request ID (int64)
     const packet2RequestId = packets[1].payload.slice(ptr, ptr + 8);
