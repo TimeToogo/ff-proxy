@@ -1,5 +1,5 @@
 {
-  "name": "ff-client",
+  "name": "@timetoogo/ff-client",
   "version": "0.1.0",
   "description": "Client library for fire and forget HTTP/UDP proxy",
   "main": "index.js",
