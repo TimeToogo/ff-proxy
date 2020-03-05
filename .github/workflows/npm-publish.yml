@@ -13,9 +13,10 @@ jobs:
       - uses: actions/setup-node@v1
         with:
           node-version: 12
-      - run: cd client/node
       - run: npm ci
+        working-directory: client/node
       - run: npm run test
+        working-directory: client/node
 
   publish-npm:
     needs: build
@@ -28,7 +29,12 @@ jobs:
           registry-url: https://registry.npmjs.org/
       - run: cd client/node
       - run: npm ci
+        working-directory: client/node
       - run: npm run build
+        working-directory: client/node
+      - run: npm run prepackage
+        working-directory: client/node
       - run: npm publish
+        working-directory: client/node
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_AUTH_TOKEN}}
