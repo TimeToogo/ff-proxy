@@ -2,7 +2,6 @@ import FfClient from "../src/client";
 import {
   FfRequestVersion,
   FfRequestOptionType,
-  FfEncryptionMode
 } from "../src/request";
 
 describe("FfClient", () => {

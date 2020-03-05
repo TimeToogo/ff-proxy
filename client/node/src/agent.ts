@@ -10,7 +10,7 @@ const debug = createDebug("ff-client");
 
 export interface FfClientAgentOptions
   extends FfClientOptions,
-    TcpToFfSocketOptions {}
+    Omit<TcpToFfSocketOptions, "https"> {}
 
 export class FfClientAgent extends Agent {
   public readonly ffClient: FfClient;
@@ -27,8 +27,10 @@ export class FfClientAgent extends Agent {
     req: ClientRequest,
     opts: RequestOptions
   ): Promise<net.Socket> {
+    debug("Agent creating new TCP to FF socket adapter");
+
     const socket = new TcpToFfSocket(this.ffClient, {
-      https: this.options.https,
+      https: opts.secureEndpoint,
       mockResponse: this.options.mockResponse
     });
 

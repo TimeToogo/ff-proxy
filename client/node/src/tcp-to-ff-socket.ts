@@ -1,13 +1,12 @@
 import net from "net";
 import stream from "stream";
 import FfClient from "./client";
+import { STATUS_CODES } from "http";
 
 export interface TcpToFfSocketOptions {
   https: boolean;
-  mockResponse?: string;
+  mockResponse?: string | Buffer | number | undefined;
 }
-
-const DEFAULT_MOCK_RESPONSE = 'HTTP/1.1 200 OK\n\n\n'
 
 export class TcpToFfSocket extends stream.Duplex {
   bufferSize: number = 0;
@@ -21,8 +20,8 @@ export class TcpToFfSocket extends stream.Duplex {
   remotePort?: number | undefined;
 
   constructor(
-    private readonly ffClient: FfClient,
-    private readonly options: TcpToFfSocketOptions
+    public readonly ffClient: FfClient,
+    public readonly options: TcpToFfSocketOptions
   ) {
     super();
   }
@@ -73,13 +72,36 @@ export class TcpToFfSocket extends stream.Duplex {
         https: this.options.https
       })
       .then(() => {
-        callback();
-
-        this.emit("data", Buffer.from(this.options.mockResponse || DEFAULT_MOCK_RESPONSE));
+        if (this.options.mockResponse) {
+          this.emit(
+            "data",
+            this.normaliseMockResponse(this.options.mockResponse)
+          );
+        }
         this.emit("end");
+
+        callback();
       })
-      .catch(e => callback(e));
+      .catch(e => {
+        callback(e);
+      });
   }
 
   _read(size: number): void {}
+
+  private normaliseMockResponse = (
+    response: string | Buffer | number
+  ): Buffer => {
+    if (response instanceof Buffer) {
+      return response;
+    } else if (typeof response === "string") {
+      return Buffer.from(response, "utf-8");
+    } else if (typeof response === "number") {
+      return Buffer.from(
+        `HTTP/1.1 ${response} ${STATUS_CODES[response]}\n\n\n`
+      );
+    }
+
+    throw new Error(`Unknown mockResponse type: ${typeof response}`);
+  };
 }
