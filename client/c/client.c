@@ -14,6 +14,7 @@
 #include "crypto.h"
 #include "alloc.h"
 #include "crypto.h"
+#include "../../src/os/linux_endian.h"
 
 int ff_client_make_request(struct ff_client_config *config, FILE *fd)
 {

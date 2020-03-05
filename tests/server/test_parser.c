@@ -4,6 +4,7 @@
 #include "../../src/parser.h"
 #include "../../src/parser_p.h"
 #include "../../src/alloc.h"
+#include "../../src/os/linux_endian.h"
 
 void test_request_parse_raw_http_get()
 {
@@ -49,7 +50,7 @@ void test_request_parse_v1_single_chunk()
 
     struct __raw_ff_request_header header = {
         .version = htons(FF_VERSION_1),
-        .request_id = htonll(1234568),
+        .request_id = htonll(1234568ULL),
         .total_length = htonl(strlen(http_request)),
         .chunk_offset = htonl(0),
         .chunk_length = htons(strlen(http_request))};
@@ -95,14 +96,14 @@ void test_request_parse_v1_multiple_chunks()
 
     struct __raw_ff_request_header chunk_1_header = {
         .version = htons(FF_VERSION_1),
-        .request_id = htonll(1234568),
+        .request_id = htonll(1234568ULL),
         .total_length = htonl(strlen(chunk_1_http_request) + strlen(chunk_2_http_request)),
         .chunk_offset = htonl(0),
         .chunk_length = htons(strlen(chunk_1_http_request))};
 
     struct __raw_ff_request_header chunk_2_header = {
         .version = htons(FF_VERSION_1),
-        .request_id = htonll(1234568),
+        .request_id = htonll(1234568ULL),
         .total_length = htonl(strlen(chunk_1_http_request) + strlen(chunk_2_http_request)),
         .chunk_offset = htonl(strlen(chunk_1_http_request)),
         .chunk_length = htons(strlen(chunk_2_http_request))};
@@ -190,7 +191,7 @@ void test_request_parse_v1_single_chunk_with_options()
 
     struct __raw_ff_request_header header = {
         .version = htons(FF_VERSION_1),
-        .request_id = htonll(1234568),
+        .request_id = htonll(1234568ULL),
         .total_length = htonl(strlen(http_request)),
         .chunk_offset = htonl(0),
         .chunk_length = htons(strlen(http_request))};
@@ -253,7 +254,7 @@ void test_ff_request_parse_id()
 {
     struct __raw_ff_request_header header = {
         .version = htons(FF_VERSION_1),
-        .request_id = htonll(1234568),
+        .request_id = htonll(1234568ULL),
         .total_length = 0,
         .chunk_offset = 0,
         .chunk_length = 0};

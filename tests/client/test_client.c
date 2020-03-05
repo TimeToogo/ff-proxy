@@ -4,6 +4,7 @@
 #include "../include/unity.h"
 #include "../../client/c/client_p.h"
 #include "../../client/c/client.h"
+#include "../../src/os/linux_endian.h"
 
 void test_client_generate_request_id()
 {

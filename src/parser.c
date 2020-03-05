@@ -7,6 +7,7 @@
 #include "alloc.h"
 #include "constants.h"
 #include "logging.h"
+#include "os/linux_endian.h"
 
 void ff_request_parse_chunk(struct ff_request *request, uint32_t buff_size, void *buff)
 {
