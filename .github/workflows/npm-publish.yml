@@ -2,8 +2,8 @@ name: npm-publish
 
 on:
   push:
-    branches:
-      - master
+    tags:
+      - 'v*.*.*'
 
 jobs:
   build:
@@ -34,7 +34,9 @@ jobs:
         working-directory: client/node
       - run: npm run prepackage
         working-directory: client/node
-      - run: npm publish --access public --tag latest
+      - run: npm version ${GITHUB_REF/refs\/tags\//}
+        working-directory: client/node
+      - run: npm publish --access public
         working-directory: client/node
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_AUTH_TOKEN}}
