@@ -1,7 +1,7 @@
 {
   "name": "@timetoogo/ff-client",
   "description": "Client library for fire and forget HTTP/UDP proxy",
-  "version": "latest",
+  "version": "0.1.0",
   "main": "dist/index.js",
   "scripts": {
     "test": "jest",
