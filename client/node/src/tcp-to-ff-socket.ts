@@ -9,7 +9,7 @@ export interface TcpToFfSocketOptions {
 }
 
 export class TcpToFfSocket extends stream.Duplex {
-  bufferSize: number = 0;
+  bufferSize: number = Number.MAX_SAFE_INTEGER;
   bytesRead: number = 0;
   bytesWritten: number = 0;
   connecting: boolean = false;
@@ -18,6 +18,8 @@ export class TcpToFfSocket extends stream.Duplex {
   remoteAddress?: string | undefined;
   remoteFamily?: string | undefined;
   remotePort?: number | undefined;
+
+  private hasSent = false;
 
   constructor(
     public readonly ffClient: FfClient,
@@ -57,13 +59,24 @@ export class TcpToFfSocket extends stream.Duplex {
     throw new Error("Method not implemented.");
   }
 
-  _write(
-    chunk: any,
-    encoding: string,
-    callback: (error?: Error | null) => void
-  ): void {
+  _writev(chunk: any, callback: (error?: Error | null) => void): void {
+    if (this.hasSent) {
+      callback(
+        new Error(
+          `Cannot write to TcpToFfSocket multiple times, request already sent`
+        )
+      );
+      return;
+    }
+
+    this.hasSent = true;
+
+    if (Array.isArray(chunk)) {
+      chunk = Buffer.concat(chunk.map((i: any) => i.chunk));
+    }
+
     if (typeof chunk === "string") {
-      chunk = Buffer.from(chunk, encoding as any);
+      chunk = Buffer.from(chunk);
     }
 
     this.ffClient
@@ -85,6 +98,18 @@ export class TcpToFfSocket extends stream.Duplex {
       .catch(e => {
         callback(e);
       });
+  }
+
+  _write(
+    chunk: any,
+    encoding: string,
+    callback: (error?: Error | null) => void
+  ) {
+    if (typeof chunk === "string") {
+      chunk = Buffer.from(chunk, encoding as any);
+    }
+
+    this._writev(chunk, callback);
   }
 
   _read(size: number): void {}

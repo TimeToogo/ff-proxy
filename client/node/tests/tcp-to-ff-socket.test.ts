@@ -1,5 +1,4 @@
 import FfClient, { FfRequestOptions } from "../src/client";
-import { FfRequestVersion, FfRequestOptionType } from "../src/request";
 import { TcpToFfSocket } from "../src";
 
 describe("TcpToFfSocket", () => {
@@ -135,6 +134,7 @@ describe("TcpToFfSocket", () => {
     socket.addListener("data",dataCallback);
 
     socket.write("GET / HTTP/1.1\nHost: google.com\n\n");
+    socket.bufferSize
 
     resolveSendRequest!();
     // Wait for event handlers to fire
