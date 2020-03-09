@@ -89,3 +89,7 @@ Temporary Items
 # node
 node_modules/
 dist/
+
+# dotnet
+bin/
+obj/

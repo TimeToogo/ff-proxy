@@ -42,7 +42,7 @@ describe("FfClientAgent", () => {
     const agent = new FfClientAgent({
       ipAddress: "127.0.0.1",
       port: 8000,
-      mockResponse: 200
+      mockResponse: 200,
     });
 
     const request = http.request({
@@ -65,12 +65,15 @@ describe("FfClientAgent", () => {
     });
 
     const request = http.request({
-      method: "GET",
+      method: "POST",
       path: "/",
       host: "www.google.com",
       agent
     });
 
     await new Promise(resolve => request.write(largePayload, resolve));
+    request.end();
+
+    expect(request.finished).toBe(true);
   });
 });
