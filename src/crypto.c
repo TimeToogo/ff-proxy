@@ -224,6 +224,8 @@ void ff_init_openssl()
     SSL_load_error_strings();
 
     OpenSSL_add_all_algorithms();
-
+   
+#if OPENSSL_VERSION_NUMBER < 0x10100000L // If OpenSSL < 1.1.0
     OPENSSL_config(NULL);
+#endif
 }
