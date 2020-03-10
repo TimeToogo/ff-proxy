@@ -2,6 +2,9 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.0</TargetFramework>
+    <PackageId>FfClient</PackageId>
+    <Authors>Elliot Levin</Authors>
+    <IsPackable>true</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
