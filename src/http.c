@@ -225,7 +225,7 @@ bool ff_http_send_request_tls(struct ff_request *request, char *host_name)
         goto error;
     }
 
-    SSL_CTX_load_verify_locations(ctx, "cacert-bundle.pem", NULL);
+    SSL_CTX_set_default_verify_paths(ctx);
 
     web = BIO_new_ssl_connect(ctx);
 
