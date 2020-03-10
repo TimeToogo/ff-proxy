@@ -54,7 +54,7 @@ void ff_decrypt_request(struct ff_request *request, struct ff_encryption_key *ke
         goto done;
     }
 
-    if (key == NULL)
+    if (key == NULL || key->key == NULL)
     {
         ff_log(FF_WARNING, "Encountered encrypted request and no pre-shared-key was set");
         goto error;

@@ -237,7 +237,7 @@ void ff_request_parse_data_chunk(struct ff_request *request, uint32_t buff_size,
 
     if (buff_size < i + chunk_length)
     {
-        ff_log(FF_WARNING, "Packet buffer ran out while receiving payload. Expected %hu bytes, %u bytes remain", header->chunk_length, buff_size - i);
+        ff_log(FF_WARNING, "Packet buffer ran out while receiving payload. Expected %hu bytes, %u bytes remain", chunk_length, buff_size - i);
         request->state = FF_REQUEST_STATE_RECEIVING_FAIL;
         return;
     }

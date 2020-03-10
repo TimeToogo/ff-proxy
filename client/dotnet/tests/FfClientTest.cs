@@ -11,10 +11,20 @@ namespace FfClient.Tests
 {
     public class FfClientTest
     {
+        private FfConfig MockConfig(string preSharedKey = null)
+        {
+            return new FfConfig()
+            {
+                IPAddress = IPAddress.Loopback,
+                Port = 8080,
+                PreSharedKey = preSharedKey
+            };
+        }
+
         [Fact]
         public void TestWriteNumberUInt16()
         {
-            var client = new FfClient(new FfConfig());
+            var client = new FfClient(this.MockConfig());
 
             var buff = new byte[2];
             int count = 0;
@@ -28,7 +38,7 @@ namespace FfClient.Tests
         [Fact]
         public void TestWriteNumberUInt32()
         {
-            var client = new FfClient(new FfConfig());
+            var client = new FfClient(this.MockConfig());
 
             var buff = new byte[4];
             int count = 0;
@@ -40,9 +50,39 @@ namespace FfClient.Tests
         }
 
         [Fact]
+        public async Task TestSerializeGetRequest()
+        {
+            var client = new FfClient(this.MockConfig());
+
+            var request = new HttpRequestMessage(HttpMethod.Get, "http://google.com");
+
+            var serialized = Encoding.UTF8.GetString(await client.SerializeHttpMessage(request));
+
+            Assert.Equal("GET / HTTP/1.1\nHost: google.com\n\n", serialized);
+        }
+
+        [Fact]
+        public async Task TestSerializePostRequest()
+        {
+            var client = new FfClient(this.MockConfig());
+
+            var request = new HttpRequestMessage(HttpMethod.Post, "http://google.com")
+            {
+                Content = new ByteArrayContent(Encoding.UTF8.GetBytes("Body"))
+                {
+                    Headers = { ContentLength = 4 }
+                }
+            };
+
+            var serialized = Encoding.UTF8.GetString(await client.SerializeHttpMessage(request));
+
+            Assert.Equal("POST / HTTP/1.1\nHost: google.com\nContent-Length: 4\n\nBody", serialized);
+        }
+
+        [Fact]
         public void TestWriteNumberUInt64()
         {
-            var client = new FfClient(new FfConfig());
+            var client = new FfClient(this.MockConfig());
 
             var buff = new byte[8];
             int count = 0;
@@ -56,7 +96,7 @@ namespace FfClient.Tests
         [Fact]
         public async Task TestUnencryptedHttpRequest()
         {
-            var client = new FfClient(new FfConfig());
+            var client = new FfClient(this.MockConfig());
 
             var request = new HttpRequestMessage()
             {
@@ -97,23 +137,22 @@ namespace FfClient.Tests
 
             // Payload
             Assert.Equal(Encoding.UTF8.GetBytes(requestPayload), packet.Skip(i).Take((int)payloadLength).ToArray());
+            i += (int)payloadLength;
+
+            Assert.Equal(i, packets[0].Length);
         }
 
 
         [Fact]
         public async Task TestEncryptedHttpsRequest()
         {
-            var client = new FfClient(new FfConfig()
-            {
-                PreSharedKey = "abc"
-            });
+            var client = new FfClient(this.MockConfig(preSharedKey: "abc"));
 
             var request = new HttpRequestMessage()
             {
                 Method = HttpMethod.Get,
                 RequestUri = new Uri("https://google.com/"),
             };
-            request.Headers.Host = "google.com";
 
             var packets = await client.CreateRequestPackets(request);
 
@@ -188,14 +227,14 @@ namespace FfClient.Tests
         [Fact]
         public async Task TestMultiPacketHttpRequest()
         {
-            var client = new FfClient(new FfConfig());
+            var client = new FfClient(this.MockConfig());
 
             var requestBody = "".PadRight(2000, 'a');
             var request = new HttpRequestMessage()
             {
                 Method = HttpMethod.Get,
                 RequestUri = new Uri("https://google.com/"),
-                Content = new StringContent(requestBody)
+                Content = new ByteArrayContent(Encoding.UTF8.GetBytes(requestBody))
             };
             request.Headers.Host = "google.com";
 
@@ -203,7 +242,7 @@ namespace FfClient.Tests
 
             Assert.Equal(2, (int)packets.Count);
 
-            var requestPayload = $"GET / HTTP/1.1\nHost: google.com\n\n{requestBody}";
+            var requestPayload = $"GET / HTTP/1.1\nHost: google.com\nContent-Length: 2000\n\n{requestBody}";
             var payloadLength = (uint)requestPayload.Length;
 
             // -- Packet 1 --

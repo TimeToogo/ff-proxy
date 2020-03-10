@@ -41,7 +41,7 @@ describe("FfClientAgent", () => {
   it("can send basic HTTP request", async () => {
     const agent = new FfClientAgent({
       ipAddress: "127.0.0.1",
-      port: 8000,
+      port: 8080,
       mockResponse: 200,
     });
 
@@ -60,7 +60,7 @@ describe("FfClientAgent", () => {
 
     const agent = new FfClientAgent({
       ipAddress: "127.0.0.1",
-      port: 8000,
+      port: 8080,
       mockResponse: 200
     });
 

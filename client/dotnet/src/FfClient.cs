@@ -7,6 +7,8 @@ using System.Net.Sockets;
 using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text;
+using System.Linq;
+using System.Net.Http.Headers;
 
 namespace FfClient
 {
@@ -21,12 +23,24 @@ namespace FfClient
 
         public FfClient(FfConfig config)
         {
+            if (config == null)
+            {
+                throw new ArgumentNullException(nameof(config));
+            }
+
             this.config = config;
             this.rng = RNGCryptoServiceProvider.Create();
+
+            this.config.Validate();
         }
 
         public async Task SendRequest(HttpRequestMessage httpRequest)
         {
+            if (httpRequest == null)
+            {
+                throw new ArgumentNullException(nameof(httpRequest));
+            }
+
             var packets = await this.CreateRequestPackets(httpRequest);
             int totalSent = 0;
 
@@ -87,6 +101,8 @@ namespace FfClient
 
         internal async Task<byte[]> SerializeHttpMessage(HttpRequestMessage httpRequest)
         {
+            await this.NormaliseHttpMessage(httpRequest);
+
             var header = new StringBuilder();
 
             header.Append(httpRequest.Method.Method);
@@ -95,7 +111,14 @@ namespace FfClient
             header.Append(" HTTP/1.1");
             header.AppendLine();
 
-            foreach (var httpHeader in httpRequest.Headers)
+            var headers = httpRequest.Headers.ToList();
+
+            if (httpRequest.Content?.Headers != null)
+            {
+                headers.AddRange(httpRequest.Content.Headers);
+            }
+
+            foreach (var httpHeader in headers)
             {
                 foreach (var value in httpHeader.Value)
                 {
@@ -136,6 +159,19 @@ namespace FfClient
             Debug.WriteLine($"Finished serializing HTTP request ({message.Length} bytes)");
 
             return message;
+        }
+
+        internal async Task NormaliseHttpMessage(HttpRequestMessage httpRequest)
+        {
+            if (httpRequest.Headers.Host == null && httpRequest.RequestUri.Host != null)
+            {
+                httpRequest.Headers.Host = httpRequest.RequestUri.Host;
+            }
+
+            if (httpRequest.Content?.Headers != null)
+            {
+                httpRequest.Content.Headers.ContentLength = (await httpRequest.Content?.ReadAsByteArrayAsync()).Length;
+            }
         }
 
         internal byte[] EncryptHttpMessage(byte[] httpMessage, FfRequest request)
@@ -221,6 +257,7 @@ namespace FfClient
                 ushort chunkLength = (ushort)Math.Min(bytesLeft, MAX_PACKET_LENGTH - i);
 
                 Buffer.BlockCopy(request.Payload, (int)chunkOffset, packet, i, chunkLength);
+                i += chunkLength;
 
                 // Write chunk length
                 this.WriteNumber<ushort>(packet, chunkLength, ref chunkLengthOffset);

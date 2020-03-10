@@ -15,12 +15,12 @@ namespace FfClient
         {
             if (this.IPAddress == null)
             {
-                throw new ArgumentNullException($"{nameof(this.IPAddress)} must not be null");
+                throw new Exception(nameof(this.IPAddress));
             }
 
-            if (this.Port > 0)
+            if (this.Port == 0)
             {
-                throw new ArgumentNullException($"{nameof(this.Port)} must be a valid port");
+                throw new ArgumentNullException(nameof(this.Port));
             }
         }
     }
