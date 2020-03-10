@@ -12,7 +12,7 @@ jobs:
       run: dotnet build --configuration Release
     - name: Create nupkg
       working-directory: client/dotnet
-      run: dotnet pack --no-build --configuration Release --output ./out
+      run: dotnet pack --no-build --configuration Release --version-suffix prerelease-$(date +%Y%m%d%H%M%S) --output ./out
     - name: Publish nupkg to Nuget
       working-directory: client/dotnet
       run: dotnet nuget push ./out/**.nupkg --source nuget.org --api-key ${{secrets.NUGET_API_KEY}}
