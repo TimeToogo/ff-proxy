@@ -1,0 +1,7 @@
+[dev-packages]
+
+[packages]
+pycryptodomex = "*"
+
+[requires]
+python_version = "3.8"
