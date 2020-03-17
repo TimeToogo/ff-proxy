@@ -16,9 +16,47 @@ public class FfRequestOption {
         }
     }
 
+    public static class Builder {
+        private FfRequestOption option = new FfRequestOption();
+
+        private Builder() {
+
+        }
+
+        public Builder type(Type type) {
+            this.option.type = type;
+
+            return this;
+        }
+
+        public Builder length(int length) {
+            this.option.length = length;
+
+            return this;
+        }
+
+        public Builder value(byte[] value) {
+            this.option.value = value;
+
+            return this;
+        }
+
+        public FfRequestOption build() {
+            return this.option;
+        }
+    }
+
     private Type type;
     private int length;
     private byte[] value;
+
+    private FfRequestOption() {
+
+    }
+
+    public static Builder builder() {
+        return new Builder();
+    }
 
     public Type getType() {
         return type;
@@ -30,17 +68,5 @@ public class FfRequestOption {
 
     public int getLength() {
         return length;
-    }
-
-    public void setLength(int length) {
-        this.length = length;
-    }
-
-    public void setType(Type type) {
-        this.type = type;
-    }
-
-    public void setValue(byte[] value) {
-        this.value = value;
     }
 }

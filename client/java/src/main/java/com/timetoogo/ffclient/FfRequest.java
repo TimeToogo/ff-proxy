@@ -1,21 +1,34 @@
 
 package com.timetoogo.ffclient;
 
-import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.List;
 
 public class FfRequest {
     public enum Version {
-        V1(1);
+        V1((byte) 1);
 
-        private int value;
+        private byte value;
 
-        private Version(int value) {
+        private Version(byte value) {
             this.value = value;
         }
 
-        public int getValue() {
+        public byte getValue() {
+            return value;
+        }
+    }
+
+    public enum EncryptionMode {
+        AES_256_GCM((byte) 1);
+
+        private byte value;
+
+        private EncryptionMode(byte value) {
+            this.value = value;
+        }
+
+        public byte getValue() {
             return value;
         }
     }

@@ -8,37 +8,59 @@ public class FfConfig {
     private int port;
     private String preSharedKey;
 
-    public InetAddress getIpAddress() {
-        return ipAddress;
+    private FfConfig() {
+
     }
 
-    public void setIpAddress(InetAddress ipAddress) {
-        this.ipAddress = ipAddress;
+    public static class Builder {
+        private FfConfig config = new FfConfig();
+
+        public Builder ipAddress(InetAddress ipAddress) {
+            this.config.ipAddress = ipAddress;
+            return this;
+        }
+
+        public Builder port(int port) {
+            this.config.port = port;
+            return this;
+        }
+
+        public Builder preSharedKey(String preSharedKey) {
+            this.config.preSharedKey = preSharedKey;
+            return this;
+        }
+
+        public FfConfig build() {
+            this.validate();
+
+            return this.config;
+        }
+
+        private void validate() {
+            if (this.config.ipAddress == null) {
+                throw new RuntimeException("ipAddress must be set to valid IP address");
+            }
+
+            if (this.config.port < 0 || this.config.port > 65536) {
+                throw new RuntimeException("port must be a valid port");
+            }
+        }
+
+    }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public InetAddress getIpAddress() {
+        return ipAddress;
     }
 
     public String getPreSharedKey() {
         return preSharedKey;
     }
 
-    public void setPreSharedKey(String preSharedKey) {
-        this.preSharedKey = preSharedKey;
-    }
-
     public int getPort() {
         return port;
-    }
-
-    public void setPort(int port) {
-        this.port = port;
-    }
-
-    void Validate() {
-        if (this.ipAddress == null) {
-            throw new RuntimeException("ipAddress must be set to valid IP address");
-        }
-
-        if (this.port > 0 && this.port < 65536) {
-            throw new RuntimeException("port must be a valid port");
-        }
     }
 }
