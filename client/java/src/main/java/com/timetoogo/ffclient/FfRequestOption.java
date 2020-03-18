@@ -3,15 +3,17 @@ package com.timetoogo.ffclient;
 
 public class FfRequestOption {
     public enum Type {
-        EOL(0), ENCRYPTION_MODE(1), ENCRYPTION_IV(2), ENCRYPTION_TAG(3), HTTPS(4);
+        EOL((byte) 0), ENCRYPTION_MODE((byte) 1), ENCRYPTION_IV((byte) 2), ENCRYPTION_TAG((byte) 3), HTTPS((byte) 4);
 
-        private int value;
+        private byte value;
 
-        private Type(int value) {
+        private Type(
+
+                byte value) {
             this.value = value;
         }
 
-        public int getValue() {
+        byte getValue() {
             return this.value;
         }
     }
@@ -29,7 +31,7 @@ public class FfRequestOption {
             return this;
         }
 
-        public Builder length(int length) {
+        public Builder length(short length) {
             this.option.length = length;
 
             return this;
@@ -47,7 +49,7 @@ public class FfRequestOption {
     }
 
     private Type type;
-    private int length;
+    private short length;
     private byte[] value;
 
     private FfRequestOption() {
@@ -66,7 +68,7 @@ public class FfRequestOption {
         return value;
     }
 
-    public int getLength() {
+    public short getLength() {
         return length;
     }
 }

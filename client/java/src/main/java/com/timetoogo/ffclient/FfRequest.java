@@ -6,15 +6,15 @@ import java.util.List;
 
 public class FfRequest {
     public enum Version {
-        V1((byte) 1);
+        V1((short) 1);
 
-        private byte value;
+        private short value;
 
-        private Version(byte value) {
+        private Version(short value) {
             this.value = value;
         }
 
-        public byte getValue() {
+        public short getValue() {
             return value;
         }
     }
