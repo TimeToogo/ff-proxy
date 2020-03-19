@@ -9,13 +9,17 @@ import static org.junit.Assert.*;
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.http.HttpRequest;
+import java.net.http.HttpRequest.BodyPublishers;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.charset.Charset;
+import java.util.Arrays;
 
 public class FfClientTest {
     @Test
     public void testSerializeGetRequest() throws Exception {
-        var client = new FfClient(FfConfig.builder().ipAddress(InetAddress.getLocalHost()).port(8080).build());
+        var client = new FfClient(
+                FfConfig.builder().ipAddress(InetAddress.getLocalHost()).port(8080).build());
 
         var request = HttpRequest.newBuilder().GET().uri(URI.create("https://google.com")).build();
 
@@ -29,10 +33,11 @@ public class FfClientTest {
 
     @Test
     public void testSerializeGetRequestWithHeaders() throws Exception {
-        var client = new FfClient(FfConfig.builder().ipAddress(InetAddress.getLocalHost()).port(8080).build());
+        var client = new FfClient(
+                FfConfig.builder().ipAddress(InetAddress.getLocalHost()).port(8080).build());
 
-        var request = HttpRequest.newBuilder().GET().header("Test", "value").uri(URI.create("https://google.com"))
-                .build();
+        var request = HttpRequest.newBuilder().GET().header("Test", "value")
+                .uri(URI.create("https://google.com")).build();
 
         var bytes = client.serializeHttpRequest(request);
         var requestString = Charset.forName("UTF-8").decode(ByteBuffer.wrap(bytes)).toString();
@@ -44,23 +49,26 @@ public class FfClientTest {
 
     @Test
     public void testSerializePost() throws Exception {
-        var client = new FfClient(FfConfig.builder().ipAddress(InetAddress.getLocalHost()).port(8080).build());
+        var client = new FfClient(
+                FfConfig.builder().ipAddress(InetAddress.getLocalHost()).port(8080).build());
 
-        var request = HttpRequest.newBuilder().POST(HttpRequest.BodyPublishers.ofString("Test Request Body"))
+        var request = HttpRequest.newBuilder()
+                .POST(HttpRequest.BodyPublishers.ofString("Test Request Body"))
                 .uri(URI.create("https://google.com")).build();
 
         var bytes = client.serializeHttpRequest(request);
         var requestString = Charset.forName("UTF-8").decode(ByteBuffer.wrap(bytes)).toString();
 
-        var expectedString = "POST / HTTP/1.1\nHost: google.com\nContent-Length: 17\n\nTest Request Body";
+        var expectedString =
+                "POST / HTTP/1.1\nHost: google.com\nContent-Length: 17\n\nTest Request Body";
 
         assertEquals(expectedString, requestString);
     }
 
     @Test
     public void testEncryptedMessage() throws Exception {
-        var client = new FfClient(
-                FfConfig.builder().ipAddress(InetAddress.getLocalHost()).port(8080).preSharedKey("testkey").build());
+        var client = new FfClient(FfConfig.builder().ipAddress(InetAddress.getLocalHost())
+                .port(8080).preSharedKey("testkey").build());
 
         byte[] plaintext = "test plaintext".getBytes(Charset.forName("UTF-8"));
 
@@ -71,19 +79,240 @@ public class FfClientTest {
         assertNotEquals(ciphertext, plaintext);
         assertEquals(ciphertext.length, plaintext.length);
 
-        var mode = request.getOptions().stream().filter(i -> i.getType() == FfRequestOption.Type.ENCRYPTION_MODE)
-                .findFirst().get().getValue();
+        var mode = request.getOptions().stream()
+                .filter(i -> i.getType() == FfRequestOption.Type.ENCRYPTION_MODE).findFirst().get()
+                .getValue();
 
         assertEquals(FfRequest.EncryptionMode.AES_256_GCM.getValue(), mode[0]);
 
-        var iv = request.getOptions().stream().filter(i -> i.getType() == FfRequestOption.Type.ENCRYPTION_IV)
-                .findFirst().get().getValue();
+        var iv = request.getOptions().stream()
+                .filter(i -> i.getType() == FfRequestOption.Type.ENCRYPTION_IV).findFirst().get()
+                .getValue();
 
         assertEquals(12, iv.length);
 
-        var tag = request.getOptions().stream().filter(i -> i.getType() == FfRequestOption.Type.ENCRYPTION_TAG)
-                .findFirst().get().getValue();
+        var tag = request.getOptions().stream()
+                .filter(i -> i.getType() == FfRequestOption.Type.ENCRYPTION_TAG).findFirst().get()
+                .getValue();
 
         assertEquals(16, tag.length);
+    }
+
+    @Test
+    public void testCreatesCorrectPacketsForGetRequest() throws Exception {
+        var client = new FfClient(
+                FfConfig.builder().ipAddress(InetAddress.getLocalHost()).port(8080).build());
+
+        var request = HttpRequest.newBuilder().GET().uri(URI.create("https://google.com")).build();
+        var payload = client.serializeHttpRequest(request);
+
+        var packets = client.createRequestPackets(request);
+
+        assertEquals(1, packets.size());
+
+        var packet1 = packets.get(0);
+        var packet1Buff = ByteBuffer.wrap(packet1.getValue()).order(ByteOrder.BIG_ENDIAN);
+
+        // Version
+        assertEquals(1, packet1Buff.getShort());
+        // Request Id
+        assertNotEquals(0, packet1Buff.getLong());
+        // Total length
+        assertEquals(payload.length, packet1Buff.getInt());
+        // Chunk offset
+        assertEquals(0, packet1Buff.getInt());
+        // Chunk length
+        assertEquals(payload.length, packet1Buff.getShort());
+
+        // HTTPS option
+        assertEquals(FfRequestOption.Type.HTTPS.getValue(), packet1Buff.get());
+        // HTTPS option length
+        assertEquals(1, packet1Buff.getShort());
+        // HTTPS option value
+        assertEquals(1, packet1Buff.get());
+
+        // EOL option
+        assertEquals(FfRequestOption.Type.EOL.getValue(), packet1Buff.get());
+        // EOL option length
+        assertEquals(0, packet1Buff.getShort());
+
+        // Payload
+        assertArrayEquals(payload, Arrays.copyOfRange(packet1Buff.array(), packet1Buff.position(),
+                packet1Buff.position() + payload.length));
+
+        // Packet length
+        assertEquals(packet1.getLength(), packet1Buff.position() + payload.length);
+    }
+
+    @Test
+    public void testCreatesCorrectPacketsForEncryptedPostRequest() throws Exception {
+        var client = new FfClient(FfConfig.builder().ipAddress(InetAddress.getLocalHost())
+                .port(8080).preSharedKey("testkey").build());
+
+        var request = HttpRequest.newBuilder().POST(BodyPublishers.ofString("testbody"))
+                .uri(URI.create("https://google.com")).build();
+        var payload = client.serializeHttpRequest(request);
+
+        var packets = client.createRequestPackets(request);
+
+        assertEquals(1, packets.size());
+
+        var packet1 = packets.get(0);
+        var packet1Buff = ByteBuffer.wrap(packet1.getValue()).order(ByteOrder.BIG_ENDIAN);
+
+        // Version
+        assertEquals(1, packet1Buff.getShort());
+        // Request Id
+        assertNotEquals(0, packet1Buff.getLong());
+        // Total length
+        assertEquals(payload.length, packet1Buff.getInt());
+        // Chunk offset
+        assertEquals(0, packet1Buff.getInt());
+        // Chunk length
+        assertEquals(payload.length, packet1Buff.getShort());
+
+        // HTTPS option
+        assertEquals(FfRequestOption.Type.HTTPS.getValue(), packet1Buff.get());
+        // HTTPS option length
+        assertEquals(1, packet1Buff.getShort());
+        // HTTPS option value
+        assertEquals(1, packet1Buff.get());
+
+        // Encryption mode option
+        assertEquals(FfRequestOption.Type.ENCRYPTION_MODE.getValue(), packet1Buff.get());
+        // Encryption mode option length
+        assertEquals(1, packet1Buff.getShort());
+        // Encryption mode option value
+        assertEquals(FfRequest.EncryptionMode.AES_256_GCM.getValue(), packet1Buff.get());
+
+        // Encryption IV option
+        assertEquals(FfRequestOption.Type.ENCRYPTION_IV.getValue(), packet1Buff.get());
+        // Encryption IV option length
+        assertEquals(12, packet1Buff.getShort());
+        // Encryption IV option value
+        packet1Buff.position(packet1Buff.position() + 12);
+
+        // Encryption Tag option
+        assertEquals(FfRequestOption.Type.ENCRYPTION_TAG.getValue(), packet1Buff.get());
+        // Encryption Tag option length
+        assertEquals(16, packet1Buff.getShort());
+        // Encryption Tag option value
+        packet1Buff.position(packet1Buff.position() + 16);
+
+        // EOL option
+        assertEquals(FfRequestOption.Type.EOL.getValue(), packet1Buff.get());
+        // EOL option length
+        assertEquals(0, packet1Buff.getShort());
+
+        // Payload
+        assertNotEquals(payload, Arrays.copyOfRange(packet1Buff.array(), packet1Buff.position(),
+                packet1Buff.position() + payload.length));
+
+        // Packet length
+        assertEquals(packet1.getLength(), packet1Buff.position() + payload.length);
+    }
+
+    @Test
+    public void testCreatesCorrectPacketsForPostWithLargeBody() throws Exception {
+        var client = new FfClient(
+                FfConfig.builder().ipAddress(InetAddress.getLocalHost()).port(8080).build());
+
+        var request = HttpRequest.newBuilder().POST(BodyPublishers.ofByteArray(new byte[2000]))
+                .uri(URI.create("https://google.com")).build();
+        var payload = client.serializeHttpRequest(request);
+
+        var packets = client.createRequestPackets(request);
+
+        assertEquals(2, packets.size());
+
+        // -- Packet 1 --
+
+        var packet1 = packets.get(0);
+        var packet1Buff = ByteBuffer.wrap(packet1.getValue()).order(ByteOrder.BIG_ENDIAN);
+
+        // Version
+        assertEquals(1, packet1Buff.getShort());
+        // Request Id
+        long packet1RequestId = packet1Buff.getLong();
+        assertNotEquals(0, packet1RequestId);
+        // Total length
+        assertEquals(payload.length, packet1Buff.getInt());
+        // Chunk offset
+        assertEquals(0, packet1Buff.getInt());
+        // Chunk length
+        assertEquals(1273, packet1Buff.getShort());
+
+        // HTTPS option
+        assertEquals(FfRequestOption.Type.HTTPS.getValue(), packet1Buff.get());
+        // HTTPS option length
+        assertEquals(1, packet1Buff.getShort());
+        // HTTPS option value
+        assertEquals(1, packet1Buff.get());
+
+        // EOL option
+        assertEquals(FfRequestOption.Type.EOL.getValue(), packet1Buff.get());
+        // EOL option length
+        assertEquals(0, packet1Buff.getShort());
+
+        // Payload
+        assertArrayEquals(Arrays.copyOfRange(payload, 0, 1273), Arrays.copyOfRange(
+                packet1Buff.array(), packet1Buff.position(), packet1Buff.position() + 1273));
+
+        // Packet length
+        assertEquals(packet1.getLength(), 1300);
+
+        // -- Packet 2 --
+
+        var packet2 = packets.get(1);
+        var packet2Buff = ByteBuffer.wrap(packet2.getValue()).order(ByteOrder.BIG_ENDIAN);
+
+        // Version
+        assertEquals(1, packet2Buff.getShort());
+        // Request Id
+        long packet2RequestId = packet2Buff.getLong();
+        assertNotEquals(0, packet2RequestId);
+        // Total length
+        assertEquals(payload.length, packet2Buff.getInt());
+        // Chunk offset
+        assertEquals(1273, packet2Buff.getInt());
+        // Chunk length
+        assertEquals(payload.length - 1273, packet2Buff.getShort());
+
+        // EOL option
+        assertEquals(FfRequestOption.Type.EOL.getValue(), packet2Buff.get());
+        // EOL option length
+        assertEquals(0, packet2Buff.getShort());
+
+        // Payload
+        assertArrayEquals(Arrays.copyOfRange(payload, 1273, payload.length),
+                Arrays.copyOfRange(packet2Buff.array(), packet2Buff.position(),
+                        packet2Buff.position() + payload.length - 1273));
+
+        // Packet length
+        assertEquals(packet2.getLength(), packet2Buff.position() + payload.length - 1273);
+
+        // Request ids
+        assertEquals(packet1RequestId, packet2RequestId);
+    }
+
+    @Test
+    public void testSendGetRequest() throws Exception {
+        var client = new FfClient(
+                FfConfig.builder().ipAddress(InetAddress.getLocalHost()).port(8080).build());
+
+        var request = HttpRequest.newBuilder().GET().uri(URI.create("https://google.com")).build();
+
+        client.sendRequest(request);
+    }
+
+    @Test
+    public void testSendEncryptedPostRequest() throws Exception {
+        var client = new FfClient(FfConfig.builder().ipAddress(InetAddress.getLocalHost())
+                .port(8080).preSharedKey("testkey").build());
+
+        var request = HttpRequest.newBuilder().POST(BodyPublishers.ofString("testbody"))
+                .uri(URI.create("https://google.com")).build();
+
+        client.sendRequest(request);
     }
 }

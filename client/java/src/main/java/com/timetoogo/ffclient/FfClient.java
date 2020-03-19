@@ -3,6 +3,8 @@ package com.timetoogo.ffclient;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse.BodySubscriber;
 import java.net.http.HttpResponse.BodySubscribers;
@@ -17,7 +19,6 @@ import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.charset.Charset;
 import java.security.SecureRandom;
 
@@ -27,18 +28,10 @@ public class FfClient {
     private FfConfig config;
     private final int MAX_PACKET_LENGTH = 1300;
 
-    public FfClient(FfConfig config) {
-        this.config = config;
-    }
-
-    public void sendRequest(HttpRequest request) {
-
-    }
-
-    static final class StringSubscriber implements Flow.Subscriber<ByteBuffer> {
+    static final class ByteArraySubscriber implements Flow.Subscriber<ByteBuffer> {
         final BodySubscriber<byte[]> wrapped;
 
-        StringSubscriber(BodySubscriber<byte[]> wrapped) {
+        private ByteArraySubscriber(BodySubscriber<byte[]> wrapped) {
             this.wrapped = wrapped;
         }
 
@@ -63,13 +56,60 @@ public class FfClient {
         }
     }
 
+    public FfClient(FfConfig config) {
+        this.config = config;
+    }
+
+    public void sendRequest(HttpRequest httpRequest) throws Exception {
+        var packets = this.createRequestPackets(httpRequest);
+
+        this.logger.info("Creating socket");
+        var socket = new DatagramSocket();
+
+        socket.connect(this.config.getIpAddress(), this.config.getPort());
+
+        for (var packet : packets) {
+            socket.send(new DatagramPacket(packet.getValue(), packet.getLength()));
+        }
+
+        this.logger.info(String.format("Sent %d packets to %s:%d", packets.size(),
+                this.config.getIpAddress().toString(), this.config.getPort()));
+
+        socket.close();
+    }
+
+    List<UdpPacket> createRequestPackets(HttpRequest httpRequest) throws Exception {
+        FfRequest request = new FfRequest();
+        request.setVersion(FfRequest.Version.V1);
+        request.setRequestId(SecureRandom.getInstanceStrong().nextLong());
+
+        if (httpRequest.uri().getScheme().equalsIgnoreCase("https")) {
+            request.getOptions().add(FfRequestOption.builder().type(FfRequestOption.Type.HTTPS)
+                    .length((short) 1).value(new byte[] {1}).build());
+        }
+
+        byte[] httpMessage = this.serializeHttpRequest(httpRequest);
+
+        if (this.config.getPreSharedKey() != null && !this.config.getPreSharedKey().isEmpty()) {
+            httpMessage = this.encryptHttpMessage(httpMessage, request);
+        }
+
+        request.setPayload(httpMessage);
+
+        request.getOptions().add(
+                FfRequestOption.builder().type(FfRequestOption.Type.EOL).length((short) 0).build());
+
+        return this.packetiseRequest(request);
+    }
+
     byte[] serializeHttpRequest(HttpRequest request) throws IOException {
         this.logger.info("Serializing HTTP request");
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
 
         buffer.write(request.method().getBytes(UTF8));
         buffer.write(" ".getBytes(UTF8));
-        buffer.write((request.uri().getPath().isEmpty() ? "/" : request.uri().getPath()).getBytes(UTF8));
+        buffer.write(
+                (request.uri().getPath().isEmpty() ? "/" : request.uri().getPath()).getBytes(UTF8));
 
         if (request.uri().getQuery() != null && !request.uri().getQuery().isEmpty()) {
             buffer.write("?".getBytes(UTF8));
@@ -104,8 +144,8 @@ public class FfClient {
 
         if (request.bodyPublisher().isPresent()) {
             var bodySubscriber = BodySubscribers.ofByteArray();
-            var stringSubscriber = new StringSubscriber(bodySubscriber);
-            request.bodyPublisher().get().subscribe(stringSubscriber);
+            var byteArraySubscriber = new ByteArraySubscriber(bodySubscriber);
+            request.bodyPublisher().get().subscribe(byteArraySubscriber);
             byte[] body = bodySubscriber.getBody().toCompletableFuture().join();
 
             buffer.write(body);
@@ -144,19 +184,21 @@ public class FfClient {
 
         this.logger.info(String.format("Encrypted message into %d bytes", cipherText.length));
 
-        request.getOptions().add(FfRequestOption.builder().type(FfRequestOption.Type.ENCRYPTION_MODE).length((short)1)
-                .value(new byte[] { FfRequest.EncryptionMode.AES_256_GCM.getValue() }).build());
+        request.getOptions().add(FfRequestOption.builder()
+                .type(FfRequestOption.Type.ENCRYPTION_MODE).length((short) 1)
+                .value(new byte[] {FfRequest.EncryptionMode.AES_256_GCM.getValue()}).build());
 
-        request.getOptions().add(
-                FfRequestOption.builder().type(FfRequestOption.Type.ENCRYPTION_IV).length((short)iv.length).value(iv).build());
+        request.getOptions().add(FfRequestOption.builder().type(FfRequestOption.Type.ENCRYPTION_IV)
+                .length((short) iv.length).value(iv).build());
 
-        request.getOptions().add(FfRequestOption.builder().type(FfRequestOption.Type.ENCRYPTION_TAG).length((short)tag.length)
-                .value(tag).build());
+        request.getOptions().add(FfRequestOption.builder().type(FfRequestOption.Type.ENCRYPTION_TAG)
+                .length((short) tag.length).value(tag).build());
 
         return cipherText;
     }
 
     List<UdpPacket> packetiseRequest(FfRequest request) {
+        this.logger.info("Packetising request");
         var packets = new ArrayList<UdpPacket>();
 
         int chunkOffset = 0;
@@ -172,19 +214,24 @@ public class FfClient {
             ptr = this.writeInt(packetBuff, ptr, chunkOffset);
             // Defer writing chuck length
             int chunkLengthPtr = ptr;
-            ptr += 4;
+            ptr += 2;
 
-            var options = chunkOffset == 0 ? request.getOptions() : new ArrayList<FfRequestOption>() {
-                {
-                    add(FfRequestOption.builder().type(FfRequestOption.Type.EOL).length((short) 0).build());
-                }
-            };
+            var options =
+                    chunkOffset == 0 ? request.getOptions() : new ArrayList<FfRequestOption>() {
+                        {
+                            add(FfRequestOption.builder().type(FfRequestOption.Type.EOL)
+                                    .length((short) 0).build());
+                        }
+                    };
 
             for (var option : options) {
                 packetBuff[ptr++] = option.getType().getValue();
                 ptr = this.writeShort(packetBuff, ptr, option.getLength());
-                System.arraycopy(option.getValue(), 0, packetBuff, ptr, option.getLength());
-                ptr += option.getLength();
+
+                if (option.getLength() > 0) {
+                    System.arraycopy(option.getValue(), 0, packetBuff, ptr, option.getLength());
+                    ptr += option.getLength();
+                }
             }
 
             short chunkLength = (short) Math.min(MAX_PACKET_LENGTH - ptr, bytesLeft);
@@ -200,12 +247,14 @@ public class FfClient {
             packets.add(new UdpPacket(packetBuff, ptr));
         }
 
+        this.logger.info(String.format("Converted request into %d packets", packets.size()));
+
         return packets;
     }
 
     private int writeShort(byte[] buff, int offset, short val) {
         int intVal = Short.toUnsignedInt(val);
-        buff[offset++] = (byte) (intVal & 0xff00 >>> 8);
+        buff[offset++] = (byte) ((intVal & 0xff00) >>> 8);
         buff[offset++] = (byte) (intVal & 0xff);
 
         return offset;
@@ -213,22 +262,22 @@ public class FfClient {
 
     private int writeInt(byte[] buff, int offset, int val) {
         long longVal = Integer.toUnsignedLong(val);
-        buff[offset++] = (byte) (longVal & 0xff000000 >>> 24);
-        buff[offset++] = (byte) (longVal & 0xff0000 >>> 16);
-        buff[offset++] = (byte) (longVal & 0xff00 >>> 8);
+        buff[offset++] = (byte) ((longVal & 0xff000000) >>> 24);
+        buff[offset++] = (byte) ((longVal & 0xff0000) >>> 16);
+        buff[offset++] = (byte) ((longVal & 0xff00) >>> 8);
         buff[offset++] = (byte) (longVal & 0xff);
 
         return offset;
     }
 
     private int writeLong(byte[] buff, int offset, long val) {
-        buff[offset++] = (byte) (val & 0xff00000000000000L >>> 56);
-        buff[offset++] = (byte) (val & 0xff000000000000L >>> 48);
-        buff[offset++] = (byte) (val & 0xff0000000000L >>> 40);
-        buff[offset++] = (byte) (val & 0xff00000000L >>> 36);
-        buff[offset++] = (byte) (val & 0xff000000 >>> 24);
-        buff[offset++] = (byte) (val & 0xff0000 >>> 16);
-        buff[offset++] = (byte) (val & 0xff00 >>> 8);
+        buff[offset++] = (byte) ((val & 0xff00000000000000L) >>> 56);
+        buff[offset++] = (byte) ((val & 0xff000000000000L) >>> 48);
+        buff[offset++] = (byte) ((val & 0xff0000000000L) >>> 40);
+        buff[offset++] = (byte) ((val & 0xff00000000L) >>> 36);
+        buff[offset++] = (byte) ((val & 0xff000000) >>> 24);
+        buff[offset++] = (byte) ((val & 0xff0000) >>> 16);
+        buff[offset++] = (byte) ((val & 0xff00) >>> 8);
         buff[offset++] = (byte) (val & 0xff);
 
         return offset;
