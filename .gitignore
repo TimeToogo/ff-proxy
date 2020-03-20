@@ -98,3 +98,7 @@ obj/
 .settings/
 gradle/
 .classpath
+
+# python
+*.pyc
+__pycache__
