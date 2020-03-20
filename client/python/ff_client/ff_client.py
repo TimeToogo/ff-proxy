@@ -140,5 +140,6 @@ class FfClient:
 
     def pack_into_size(self, format: str, buff: bytearray, offset: int, value) -> int:
         size = struct.calcsize(format)
+        struct.pack_into(format, buff, offset, value)
 
         return size

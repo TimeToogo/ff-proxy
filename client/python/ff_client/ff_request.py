@@ -7,10 +7,10 @@ class FfRequest:
 
     class Option:
         class Type:
-            EOL = 0,
-            ENCRYPTION_MODE = 1,
-            ENCRYPTION_IV = 2,
-            ENCRYPTION_TAG = 3,
+            EOL = 0
+            ENCRYPTION_MODE = 1
+            ENCRYPTION_IV = 2
+            ENCRYPTION_TAG = 3
             HTTPS = 4
         
         def __init__(self, type: int, length: int, value: bytearray):
