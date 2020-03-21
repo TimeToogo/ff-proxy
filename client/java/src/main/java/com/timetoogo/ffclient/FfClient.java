@@ -66,6 +66,8 @@ public class FfClient {
         this.logger.info("Creating socket");
         var socket = new DatagramSocket();
 
+        socket.setReuseAddress(true);
+        socket.setSoTimeout(5000);
         socket.connect(this.config.getIpAddress(), this.config.getPort());
 
         for (var packet : packets) {
