@@ -9,12 +9,13 @@
 plugins {
     // Apply the java-library plugin to add support for Java Library
     id 'java-library'
+    id 'maven-publish'
+    id "com.jfrog.bintray" version "1.8.4"
 }
 
 repositories {
-    // Use jcenter for resolving your dependencies.
-    // You can declare any Maven/Ivy/file repository here.
     jcenter()
+    mavenCentral()
 }
 
 dependencies {
@@ -35,4 +36,58 @@ test {
         outputs.upToDateWhen {false}
         showStandardStreams = true
     }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            groupId = 'com.timetoogo.ff-client'
+            artifactId = 'ff-client'
+            version "1.0.0-prerelease-${new Date().format('yyyyMMddHHmmss')}"
+            from components.java
+            pom {
+                name = 'ff-client'
+                description = 'Client library for ff-proxy'
+                url = 'https://github.com/TimeToogo/ff-proxy'
+                licenses {
+                    license {
+                        name = 'MIT'
+                        url = 'https://opensource.org/licenses/MIT'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'timetoogo'
+                        name = 'Elliot Levin'
+                        email = 'elliotlevin@hotmail.com'
+                    }
+                }
+                scm {
+                    url = 'https://github.com/TimeToogo/ff-proxy'
+                }
+            }
+        }
+    }
+
+    repositories {
+        maven {}
+    }
+}
+
+bintray {
+	user = 'timetoogo'
+	key = System.getenv('BINTRAY_API_KEY')
+	publications = ['mavenJava']
+
+    pkg {
+		repo = 'ff-client'
+		name = 'ff-client'
+		licenses = ['MIT']
+		vcsUrl = 'https://github.com/TimeToogo/ff-proxy'
+		version {
+			name = "1.0.0-prerelease-${new Date().format('yyyyMMddHHmmss')}"
+			desc = 'Prerelease'
+			released  = new Date()
+		}
+	}
 }

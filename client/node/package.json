@@ -1,6 +1,6 @@
 {
   "name": "@timetoogo/ff-client",
-  "description": "Client library for fire and forget HTTP/UDP proxy",
+  "description": "Client library for ff-proxy",
   "version": "0.1.0",
   "main": "dist/index.js",
   "scripts": {
@@ -10,11 +10,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/TimeToogo/fire-and-forget-http.git"
+    "url": "git+https://github.com/TimeToogo/ff-proxy.git"
   },
   "author": "Elliot Levin",
   "license": "MIT",
-  "homepage": "https://github.com/TimeToogo/fire-and-forget-http#readme",
+  "homepage": "https://github.com/TimeToogo/ff-proxy#readme",
   "dependencies": {
     "agent-base": "^6.0.0",
     "debug": "^4.1.1"
