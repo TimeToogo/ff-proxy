@@ -5,6 +5,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse.BodySubscriber;
 import java.net.http.HttpResponse.BodySubscribers;
@@ -64,10 +65,9 @@ public class FfClient {
         var packets = this.createRequestPackets(httpRequest);
 
         this.logger.info("Creating socket");
-        var socket = new DatagramSocket();
+        var socket = new DatagramSocket(0, InetAddress.getLocalHost());
 
         socket.setReuseAddress(true);
-        socket.setSoTimeout(5000);
         socket.connect(this.config.getIpAddress(), this.config.getPort());
 
         for (var packet : packets) {
