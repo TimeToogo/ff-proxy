@@ -15,8 +15,8 @@ jobs:
       run: chmod +x gradlew
       working-directory: client/java
     - name: Build with Gradle
-      run: ./gradlew build
+      run: gradle build
       working-directory: client/java
     - name: Publish to Bintray
-      run: ./gradlew bintrayUpload
+      run: gradle bintrayUpload
       working-directory: client/java
