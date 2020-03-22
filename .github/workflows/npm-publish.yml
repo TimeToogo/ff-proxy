@@ -1,9 +1,6 @@
 name: npm-publish
 
-on:
-  push:
-    tags:
-      - 'v*.*.*'
+on: [push]
 
 jobs:
   build:
@@ -34,7 +31,7 @@ jobs:
         working-directory: client/node
       - run: npm run prepackage
         working-directory: client/node
-      - run: npm version ${GITHUB_REF/refs\/tags\//}
+      - run: npm version 1.0.0-$(date +%Y%m%d%H%M%S)
         working-directory: client/node
       - run: npm publish --access public
         working-directory: client/node
