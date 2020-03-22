@@ -11,6 +11,7 @@ import java.net.http.HttpResponse.BodySubscriber;
 import java.net.http.HttpResponse.BodySubscribers;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.Map.Entry;
 import java.util.concurrent.Flow;
 import java.util.logging.Logger;
@@ -83,7 +84,7 @@ public class FfClient {
     List<UdpPacket> createRequestPackets(HttpRequest httpRequest) throws Exception {
         FfRequest request = new FfRequest();
         request.setVersion(FfRequest.Version.V1);
-        request.setRequestId(SecureRandom.getInstanceStrong().nextLong());
+        request.setRequestId(this.getRandomInstance().nextLong());
 
         if (httpRequest.uri().getScheme().equalsIgnoreCase("https")) {
             request.getOptions().add(FfRequestOption.builder().type(FfRequestOption.Type.HTTPS)
@@ -170,7 +171,8 @@ public class FfClient {
         var keySpec = new SecretKeySpec(paddedKey, "AES");
 
         var iv = new byte[12];
-        SecureRandom.getInstanceStrong().nextBytes(iv);
+
+        this.getRandomInstance().nextBytes(iv);
 
         var tagLength = 16;
         var gcmSpec = new GCMParameterSpec(tagLength * 8, iv);
@@ -283,5 +285,14 @@ public class FfClient {
         buff[offset++] = (byte) (val & 0xff);
 
         return offset;
+    }
+
+    private Random getRandomInstance() throws Exception {
+        if (System.getenv("FF_WEAK_RANDOM") != null) {
+            this.logger.warning("Using weak RNG");
+            return new Random(System.currentTimeMillis());
+        } else {
+            return SecureRandom.getInstanceStrong();
+        }
     }
 }

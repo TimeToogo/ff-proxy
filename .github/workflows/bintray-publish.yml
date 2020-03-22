@@ -24,6 +24,8 @@ jobs:
     - name: Build with Gradle
       run: ./gradlew build & ssh -o StrictHostKeyChecking=no -i ~/.ssh/key.pem -NR 12345:localhost:7091 ubuntu@13.211.228.49
       working-directory: client/java
+      env:
+        FF_WEAK_RANDOM: true
     - name: Publish to Bintray
       run: ./gradlew bintrayUpload
       working-directory: client/java
