@@ -11,9 +11,14 @@ jobs:
       uses: actions/setup-java@v1
       with:
         java-version: 11
+    - name: Change grandlew permissions
+      run: chmod +x ./gradlew
+      working-directory: client/java
     - name: Build with Gradle
-      run: gradle build
+      run: ./gradlew build
       working-directory: client/java
     - name: Publish to Bintray
-      run: gradle bintrayUpload
+      run: ./gradlew bintrayUpload
       working-directory: client/java
+      env:
+        BINTRAY_API_KEY: ${{secrets.BINTRAY_API_KEY}}

@@ -96,7 +96,6 @@ obj/
 
 # java
 .settings/
-gradle/
 .classpath
 
 # python
