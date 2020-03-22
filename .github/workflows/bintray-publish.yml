@@ -14,15 +14,8 @@ jobs:
     - name: Change grandlew permissions
       run: chmod +x ./gradlew
       working-directory: client/java
-    - name: Setup remote SSH - Keyfile
-      run: mkdir ~/.ssh/ && echo $SSH_JUMPBOX_KEY | base64 -d > ~/.ssh/key.pem
-      env:
-        SSH_JUMPBOX_KEY: ${{secrets.SSH_JUMPBOX_KEY}}
-      working-directory: client/java
-    - run: chmod 0400 ~/.ssh/key.pem
-      working-directory: client/java
     - name: Build with Gradle
-      run: ./gradlew build & ssh -o StrictHostKeyChecking=no -i ~/.ssh/key.pem -NR 12345:localhost:7091 ubuntu@13.211.228.49
+      run: ./gradlew build
       working-directory: client/java
       env:
         FF_WEAK_RANDOM: true

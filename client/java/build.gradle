@@ -32,8 +32,6 @@ dependencies {
 apply plugin: 'java'
 
 test {
-    jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=7091'
-
     testLogging {
         outputs.upToDateWhen {false}
         showStandardStreams = true
