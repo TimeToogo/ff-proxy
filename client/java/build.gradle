@@ -32,6 +32,8 @@ dependencies {
 apply plugin: 'java'
 
 test {
+    jvmArgs '-Dcom.sun.management.jmxremote=true -Dcom.sun.management.jmxremote.local.only=false -Dcom.sun.management.jmxremote.port=7091 -Dcom.sun.management.jmxremote.rmi.port=7091 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false'
+
     testLogging {
         outputs.upToDateWhen {false}
         showStandardStreams = true

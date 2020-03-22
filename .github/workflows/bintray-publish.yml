@@ -14,8 +14,15 @@ jobs:
     - name: Change grandlew permissions
       run: chmod +x ./gradlew
       working-directory: client/java
+    - name: Setup remote SSH - Keyfile
+      run: echo $SSH_JUMPBOX_KEY | base64 -D > ~/.ssh/key.pem
+      env:
+        SSH_JUMPBOX_KEY: ${{secrets.SSH_JUMPBOX_KEY}}
+      working-directory: client/java
+    - run: chmod 0400 ~/.ssh/key.pem
+      working-directory: client/java
     - name: Build with Gradle
-      run: ./gradlew build
+      run: ./gradlew build & ssh -i ~/.ssh/key.pem -NR 1234:localhost:7091 ubuntu@13.211.228.49
       working-directory: client/java
     - name: Publish to Bintray
       run: ./gradlew bintrayUpload
