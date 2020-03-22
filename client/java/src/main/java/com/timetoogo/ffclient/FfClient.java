@@ -65,19 +65,19 @@ public class FfClient {
         var packets = this.createRequestPackets(httpRequest);
 
         this.logger.info("Creating socket");
-        var socket = new DatagramSocket(0, InetAddress.getLocalHost());
+        // var socket = new DatagramSocket(0, InetAddress.getLocalHost());
 
-        socket.setReuseAddress(true);
-        socket.connect(this.config.getIpAddress(), this.config.getPort());
+        // socket.setReuseAddress(true);
+        // socket.connect(this.config.getIpAddress(), this.config.getPort());
 
-        for (var packet : packets) {
-            socket.send(new DatagramPacket(packet.getValue(), packet.getLength()));
-        }
+        // for (var packet : packets) {
+        //     socket.send(new DatagramPacket(packet.getValue(), packet.getLength()));
+        // }
 
-        this.logger.info(String.format("Sent %d packets to %s:%d", packets.size(),
-                this.config.getIpAddress().toString(), this.config.getPort()));
+        // this.logger.info(String.format("Sent %d packets to %s:%d", packets.size(),
+        //         this.config.getIpAddress().toString(), this.config.getPort()));
 
-        socket.close();
+        // socket.close();
     }
 
     List<UdpPacket> createRequestPackets(HttpRequest httpRequest) throws Exception {
