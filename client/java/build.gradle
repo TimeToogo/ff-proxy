@@ -32,7 +32,7 @@ dependencies {
 apply plugin: 'java'
 
 test {
-    jvmArgs '-Dcom.sun.management.jmxremote=true -Dcom.sun.management.jmxremote.local.only=false -Dcom.sun.management.jmxremote.port=7091 -Dcom.sun.management.jmxremote.rmi.port=7091 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false'
+    jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=7091'
 
     testLogging {
         outputs.upToDateWhen {false}
