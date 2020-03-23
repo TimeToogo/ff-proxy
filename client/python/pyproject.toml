@@ -1,0 +1,30 @@
+[project]
+name = "ff-client"
+version = "0.1.1"
+description = "Client library for ff-proxy"
+authors = [
+    "Elliot Levin <elliotlevin@hotmail.com>"
+]
+license = "MIT"
+readme = "README.md"
+python = "^3.6"
+homepage = "https://github.com/TimeToogo/ff-proxy"
+repository = "https://github.com/TimeToogo/ff-proxy"
+documentation = "https://github.com/TimeToogo/ff-proxy"
+
+keywords = ["ff-proxy", "tcp", "udp", "http"]
+
+classifiers = [
+    "Topic :: Software Development"
+]
+
+# Requirements
+[dependencies]
+pycryptodomex = "*"
+
+[build-system]
+requires = [
+    "setuptools >= 35.0.2",
+    "setuptools_scm >= 2.0.0, <3"
+]
+build-backend = "setuptools.build_meta"

@@ -29,7 +29,19 @@ class FfClient:
         return logger
 
     def send_request(self, http_request: str, https: bool = True):
-        pass
+        packets = self.create_request_packets(http_request, https)
+
+        self.logger.info('Creating socket')
+
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+            self.logger.info('Sending %d packets to %s:%s' % (
+                len(packets), self.config.ip_address, self.config.port))
+
+            for packet in packets:
+                sock.sendto(packet.payload[:packet.length],
+                            (self.config.ip_address, self.config.port))
+            
+            self.logger.info('Packets sent!')
 
     def create_request_packets(self, http_request: str, https: bool = True):
         self.logger.debug('Initialising ff request')
@@ -91,7 +103,15 @@ class FfClient:
     def packetise_request(self, request: FfRequest) -> List[UdpPacket]:
         self.logger.debug('Packetising request')
 
-        payload = request.payload if isinstance(request.payload, bytearray) else bytearray(request.payload.encode('utf8'))
+        if isinstance(request.payload, bytearray):
+            payload = request.payload
+        elif isinstance(request.payload, str):
+            payload = bytearray(request.payload.encode('utf8'))
+        elif isinstance(request.payload, bytes):
+            payload = bytearray(request.payload)
+        else:
+            raise ValueError(
+                'Unknown request payload type, expecting bytearray, str or bytes, got %s' % request.payload)
 
         packets = []
         chunk_offset = 0
@@ -117,13 +137,15 @@ class FfClient:
 
             for option in options:
                 ptr += self.pack_into_size('!B', packet_buff, ptr, option.type)
-                ptr += self.pack_into_size('!H', packet_buff, ptr, option.length)
+                ptr += self.pack_into_size('!H',
+                                           packet_buff, ptr, option.length)
                 for i in option.value:
                     packet_buff[ptr] = i
                     ptr += 1
 
             chunk_length = min(self.MAX_PACKET_LENGTH - ptr, bytes_left)
-            self.pack_into_size('!H', packet_buff, chunk_length_ptr, chunk_length)
+            self.pack_into_size('!H', packet_buff,
+                                chunk_length_ptr, chunk_length)
 
             for i in range(chunk_offset, chunk_offset + chunk_length):
                 packet_buff[ptr] = payload[i]

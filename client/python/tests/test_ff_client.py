@@ -37,9 +37,15 @@ class TestFfClient(unittest.TestCase):
                           FfRequest.Option.Type.ENCRYPTION_TAG][0].value
         self.assertEqual(16, len(encryption_tag))
 
-    def test_create_request_packets_for_get_request(self):
+    def test_send_get_request(self):
         client = FfClient(FfConfig(ip_address='127.0.0.1',
                                    port=8080, log_level=logging.DEBUG))
 
-        packets = client.create_request_packets(
-            "GET / HTTP/1.1\nHost: google.com.au\n\n")
+        client.send_request('GET / HTTP/1.1\nHost: google.com\n\n')
+
+    def test_send_encrypted_get_request(self):
+        client = FfClient(FfConfig(ip_address='127.0.0.1',
+                                   pre_shared_key='testkey',
+                                   port=8080, log_level=logging.DEBUG))
+
+        client.send_request('GET / HTTP/1.1\nHost: google.com\n\n')
