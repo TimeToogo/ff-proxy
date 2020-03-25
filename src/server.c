@@ -230,7 +230,7 @@ void ff_proxy_clean_up_old_requests_loop(struct ff_hash_table *requests)
     {
         sleep(FF_PROXY_CLEAN_INTERVAL_SECS);
 
-        ff_log(FF_DEBUG, "Cleaning up partially send requests which have expired");
+        ff_log(FF_DEBUG, "Cleaning up partially received requests");
 
         time_t now;
         time(&now);
@@ -258,6 +258,6 @@ void ff_proxy_clean_up_old_requests_loop(struct ff_hash_table *requests)
             ff_hash_table_remove_item(requests, requests_to_remove[i]->request_id);
         }
 
-        ff_log(count == 0 ? FF_DEBUG : FF_WARNING, "Cleaned up %u expired requests", count);
+        ff_log(count == 0 ? FF_DEBUG : FF_WARNING, "Cleaned up %u expired partial requests", count);
     }
 }
