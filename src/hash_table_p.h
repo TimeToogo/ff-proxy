@@ -15,6 +15,8 @@ struct ff_hash_table_node
     uint64_t item_id;
     void *value;
     struct ff_hash_table_node *next;
+    struct ff_hash_table_node *prev_in_list;
+    struct ff_hash_table_node *next_in_list;
 };
 
 union ff_hash_table_bucket *ff_hash_table_init_bucket();

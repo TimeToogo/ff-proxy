@@ -26,6 +26,8 @@ struct ff_hash_table *ff_hash_table_init(uint8_t prefix_bit_length)
     *(uint8_t *)&hash_table->bucket_levels = (int)ceil(hash_table->prefix_bit_length / FF_BUCKET_POOL_BITS);
 
     hash_table->buckets = ff_hash_table_init_bucket();
+    hash_table->linked_list = NULL;
+    hash_table->linked_list_last = NULL;
 
     return hash_table;
 }
@@ -110,43 +112,50 @@ void ff_hash_table_put_item(struct ff_hash_table *hash_table, uint64_t item_id, 
 
     union ff_hash_table_bucket *buckets = ff_hash_table_get_or_create_bucket(hash_table, item_id, true, NULL);
 
-    // If no nodes in bucket add first node
-    if (buckets->nodes == NULL)
-    {
-
-        buckets->nodes = (struct ff_hash_table_node *)malloc(sizeof(struct ff_hash_table_node));
-        buckets->nodes->next = NULL;
-        buckets->nodes->item_id = item_id;
-        buckets->nodes->value = item;
-        hash_table->length++;
-        goto cleanup;
-    }
-
     // Find last node or matching in chain
     struct ff_hash_table_node *node = buckets->nodes;
+    struct ff_hash_table_node *last_node = node;
 
-    if (node->item_id == item_id)
+    while (node != NULL)
     {
-        node->value = item;
-        goto cleanup;
-    }
-
-    while (node->next != NULL)
-    {
-        node = node->next;
-
+        // Item already exists, update in hash table
         if (node->item_id == item_id)
         {
             node->value = item;
             goto cleanup;
         }
+
+        last_node = node;
+        node = node->next;
     }
 
-    struct ff_hash_table_node *new_node = (struct ff_hash_table_node *)malloc(sizeof(struct ff_hash_table_node));
-    new_node->next = NULL;
+    // Store new item in hash table
+    struct ff_hash_table_node *new_node = (struct ff_hash_table_node *)calloc(1, sizeof(struct ff_hash_table_node));
     new_node->item_id = item_id;
     new_node->value = item;
-    node->next = new_node;
+
+    if (last_node == NULL)
+    {
+        buckets->nodes = new_node;
+    }
+    else
+    {
+        last_node->next = new_node;
+    }
+
+    // Store new item in global linked list
+    if (hash_table->linked_list == NULL)
+    {
+        hash_table->linked_list = new_node;
+        hash_table->linked_list_last = new_node;
+    }
+    else
+    {
+        new_node->prev_in_list = hash_table->linked_list_last;
+        hash_table->linked_list_last->next_in_list = new_node;
+        hash_table->linked_list_last = new_node;
+    }
+
     hash_table->length++;
 
 cleanup:
@@ -173,6 +182,7 @@ void ff_hash_table_remove_item(struct ff_hash_table *hash_table, uint64_t item_i
     {
         if (node->item_id == item_id)
         {
+            // Remove from hash node linked list
             if (prev_node != NULL)
             {
                 prev_node->next = node->next;
@@ -180,6 +190,27 @@ void ff_hash_table_remove_item(struct ff_hash_table *hash_table, uint64_t item_i
             else
             {
                 buckets->nodes = node->next;
+            }
+
+            // Remove from global linked list
+            if (node->prev_in_list != NULL)
+            {
+                node->prev_in_list->next_in_list = node->next_in_list;
+            }
+
+            if (node->next_in_list != NULL)
+            {
+                node->next_in_list->prev_in_list = node->prev_in_list;
+            }
+
+            if (hash_table->linked_list == node)
+            {
+                hash_table->linked_list = node->next_in_list;
+            }
+
+            if (hash_table->linked_list_last == node)
+            {
+                hash_table->linked_list_last = node->prev_in_list;
             }
 
             hash_table->length--;
@@ -237,6 +268,37 @@ void ff_hash_table_free(struct ff_hash_table *hash_table)
     ff_hash_table_free_bucket_level(hash_table->bucket_levels, hash_table->buckets);
 
     FREE(hash_table);
+}
+
+struct ff_hash_table_iterator *ff_hash_table_iterator_init(struct ff_hash_table *hash_table)
+{
+    pthread_mutex_lock(&ff_hash_table_data_mutex);
+
+    struct ff_hash_table_iterator *iterator = (struct ff_hash_table_iterator *)calloc(1, sizeof(struct ff_hash_table_iterator));
+    iterator->hash_table = hash_table;
+    iterator->current_node = hash_table->linked_list;
+
+    return iterator;
+}
+
+void *ff_hash_table_iterator_next(struct ff_hash_table_iterator *iterator)
+{
+    if (iterator->current_node == NULL)
+    {
+        return NULL;
+    }
+    else
+    {
+        iterator->current_node = iterator->current_node->next_in_list;
+
+        return iterator->current_node == NULL ? NULL : iterator->current_node->value;
+    }
+}
+
+void ff_hash_table_iterator_free(struct ff_hash_table_iterator *iterator)
+{
+    FREE(iterator);
+    pthread_mutex_unlock(&ff_hash_table_data_mutex);
 }
 
 void ff_hash_table_free_bucket_level(uint8_t bucket_levels, union ff_hash_table_bucket *bucket)

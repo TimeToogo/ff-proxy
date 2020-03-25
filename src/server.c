@@ -8,6 +8,7 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 #include <errno.h>
+#include <time.h>
 #include "server.h"
 #include "server_p.h"
 #include "parser.h"
@@ -121,6 +122,7 @@ void ff_proxy_process_incoming_packet(struct ff_config *config, struct ff_hash_t
         if (request == NULL)
         {
             request = ff_request_alloc();
+            time(&request->received_at);
             memcpy(&request->source, src_address, sizeof(struct sockaddr));
             ff_hash_table_put_item(requests, request_id, (void *)request);
         }

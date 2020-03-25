@@ -1,4 +1,5 @@
 #include <netinet/ip.h>
+#include <time.h>
 #include "stdlib.h"
 #include "constants.h"
 
@@ -59,6 +60,7 @@ struct ff_request
     enum ff_request_state state;
     enum ff_request_version version;
     struct sockaddr source;
+    time_t received_at;
     uint64_t request_id;
     uint8_t options_length;
     struct ff_request_option_node **options;

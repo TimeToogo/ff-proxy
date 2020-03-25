@@ -57,6 +57,9 @@ int main(void)
     RUN_TEST(test_hash_table_remove_item_last_in_bucket);
     RUN_TEST(test_hash_table_remove_item_first_in_bucket);
     RUN_TEST(test_hash_table_remove_item_different_buckets);
+    RUN_TEST(test_hash_table_iterator_init_empty);
+    RUN_TEST(test_hash_table_iterator_init_with_item);
+    RUN_TEST(test_hash_table_iterator_next);
 
     RUN_TEST(test_request_decrypt_with_unencrypted_request_with_key);
     RUN_TEST(test_request_decrypt_without_key);

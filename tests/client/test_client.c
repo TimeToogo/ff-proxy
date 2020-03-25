@@ -142,7 +142,7 @@ void test_client_packetise_request_multiple_packets_with_option()
 
     struct ff_request *request = ff_request_alloc();
 
-    request->options = (struct ff_request_option_node **)malloc(sizeof(struct ff_request_option_node *) * 1);
+    request->options = (struct ff_request_option_node **)malloc(sizeof(struct ff_request_option_node *) * 2);
     request->options[0] = ff_request_option_node_alloc();
     request->options[0]->type = FF_REQUEST_OPTION_TYPE_HTTPS;
     request->options[0]->length = 1;
