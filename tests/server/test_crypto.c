@@ -6,14 +6,14 @@
 #include "../../src/alloc.h"
 #include "../../src/crypto.h"
 
-void test_request_decrypt_with_unencrypted_request()
+void test_request_decrypt_with_unencrypted_request_with_key()
 {
     struct ff_request *request = ff_request_alloc();
     struct ff_encryption_key key = {.key = (uint8_t *)"testkey"};
 
     ff_decrypt_request(request, &key);
 
-    TEST_ASSERT_EQUAL_MESSAGE(FF_REQUEST_STATE_DECRYPTED, request->state, "state check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(FF_REQUEST_STATE_DECRYPTING_FAILED, request->state, "state check failed");
 
     ff_request_free(request);
 }
@@ -85,7 +85,7 @@ void test_request_decrypt_without_iv()
 void test_request_decrypt_without_tag()
 {
     struct ff_request *request = ff_request_alloc();
-    struct ff_encryption_key key = {.key = (uint8_t*)"testkey"};
+    struct ff_encryption_key key = {.key = (uint8_t *)"testkey"};
 
     request->options_length = 2;
     request->options = (struct ff_request_option_node **)malloc(sizeof(struct ff_request_option_node **) * 2);
@@ -112,7 +112,7 @@ void test_request_decrypt_valid()
 
     struct ff_request *request = ff_request_alloc();
 
-    struct ff_encryption_key key = {.key = (uint8_t*)"testkey123456789"};
+    struct ff_encryption_key key = {.key = (uint8_t *)"testkey123456789"};
 
     // Ciphertext for plaintext: "plaintext"
     uint8_t ciphertext[] = {43, 97, 119, 68, 163, 127, 145, 239, 110};
@@ -156,12 +156,11 @@ void test_request_decrypt_valid()
     ff_request_free(request);
 }
 
-
 void test_request_decrypt_invalid()
 {
     struct ff_request *request = ff_request_alloc();
 
-    struct ff_encryption_key key = {.key = (uint8_t*)"wrongkey"};
+    struct ff_encryption_key key = {.key = (uint8_t *)"wrongkey"};
 
     uint8_t ciphertext[] = {43, 97, 119, 68, 163, 127, 145, 239, 110};
     uint8_t tag[] = {92, 174, 9, 6, 224, 156, 40, 64, 186, 192, 160, 218, 192, 139, 27, 3};

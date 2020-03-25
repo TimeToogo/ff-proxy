@@ -8,7 +8,7 @@
 LD=gcc
 CC=gcc
 
-CC_FLAGS=-Wall 
+CC_FLAGS=-Wall
 LD_FLAGS=-Wall 
 SERVER_LIBS=-lssl -lcrypto -lpthread
 CLIENT_LIBS=-lssl -lcrypto

@@ -21,6 +21,8 @@ void ff_decrypt_request(struct ff_request *request, struct ff_encryption_key *ke
     uint8_t *tag = NULL;
     uint16_t tag_len = 0;
 
+    bool has_key = key != NULL && key->key != NULL;
+
     for (uint8_t i = 0; i < request->options_length; i++)
     {
         switch (request->options[i]->type)
@@ -51,10 +53,18 @@ void ff_decrypt_request(struct ff_request *request, struct ff_encryption_key *ke
 
     if (encryption_mode == 0)
     {
-        goto done;
+        if (has_key)
+        {
+            ff_log(FF_WARNING, "Encountered unencrypted request and pre-shared-key was set");
+            goto error;
+        }
+        else
+        {
+            goto done;
+        }
     }
 
-    if (key == NULL || key->key == NULL)
+    if (!has_key)
     {
         ff_log(FF_WARNING, "Encountered encrypted request and no pre-shared-key was set");
         goto error;
