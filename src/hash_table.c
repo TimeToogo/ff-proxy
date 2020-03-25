@@ -276,23 +276,25 @@ struct ff_hash_table_iterator *ff_hash_table_iterator_init(struct ff_hash_table 
 
     struct ff_hash_table_iterator *iterator = (struct ff_hash_table_iterator *)calloc(1, sizeof(struct ff_hash_table_iterator));
     iterator->hash_table = hash_table;
-    iterator->current_node = hash_table->linked_list;
+    iterator->current_node = NULL;
+    iterator->started = false;
 
     return iterator;
 }
 
 void *ff_hash_table_iterator_next(struct ff_hash_table_iterator *iterator)
 {
-    if (iterator->current_node == NULL)
+    if (!iterator->started)
     {
-        return NULL;
+        iterator->current_node = iterator->hash_table->linked_list;
+        iterator->started = true;
     }
-    else
+    else if (iterator->current_node != NULL)
     {
         iterator->current_node = iterator->current_node->next_in_list;
-
-        return iterator->current_node == NULL ? NULL : iterator->current_node->value;
     }
+
+    return iterator->current_node == NULL ? NULL : iterator->current_node->value;
 }
 
 void ff_hash_table_iterator_free(struct ff_hash_table_iterator *iterator)

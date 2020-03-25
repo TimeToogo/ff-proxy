@@ -16,8 +16,7 @@ struct ff_process_request_args
     struct ff_hash_table *requests;
 };
 
-void
-ff_proxy_process_incoming_packet(
+void ff_proxy_process_incoming_packet(
     struct ff_config *config,
     struct ff_hash_table *requests,
     struct sockaddr *src_address,
@@ -25,5 +24,7 @@ ff_proxy_process_incoming_packet(
     int buff_len);
 
 void ff_proxy_process_request(struct ff_process_request_args *args);
+
+void ff_proxy_clean_up_old_requests_loop(struct ff_hash_table *requests);
 
 #endif

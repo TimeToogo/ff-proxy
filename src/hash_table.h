@@ -19,6 +19,7 @@ struct ff_hash_table_iterator
 {
     struct ff_hash_table *hash_table;
     struct ff_hash_table_node *current_node;
+    bool started;
 };
 
 struct ff_hash_table *ff_hash_table_init(uint8_t prefix_bit_length);

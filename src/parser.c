@@ -262,8 +262,9 @@ void ff_request_parse_data_chunk(struct ff_request *request, uint32_t buff_size,
 
         while (1)
         {
-            bool overlapsExistingNode = node->offset < current_node->offset + current_node->length && current_node->offset <= node->offset + node->length;
-            if (overlapsExistingNode)
+
+            bool overlaps_existing_node = node->offset < current_node->offset + current_node->length && current_node->offset <= node->offset + node->length;
+            if (overlaps_existing_node)
             {
                 ff_log(FF_WARNING,
                        "Received chunk range overlaps existing data. Received byte range [%u, %u] intersects existing range [%u, %u]",
@@ -273,7 +274,7 @@ void ff_request_parse_data_chunk(struct ff_request *request, uint32_t buff_size,
                 return;
             }
 
-            if (current_node->next == NULL)
+            if (current_node == NULL || current_node->next == NULL)
             {
                 break;
             }
@@ -287,7 +288,12 @@ void ff_request_parse_data_chunk(struct ff_request *request, uint32_t buff_size,
 
     if (request->received_length == request->payload_length)
     {
+        ff_log(FF_DEBUG, "Request %lu successfully received", request->request_id);
         request->state = FF_REQUEST_STATE_RECEIVED;
+    }
+    else
+    {
+        ff_log(FF_DEBUG, "Finished parsing request %lu partial packet, %lu bytes remain", request->request_id, request->payload_length - request->received_length);
     }
 }
 

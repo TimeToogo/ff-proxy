@@ -16,14 +16,18 @@
 #include "logging.h"
 #include "alloc.h"
 
-#define BUFF_SIZE 2000 // Based on typical path MTU of 1500
+#define FF_PROXY_BUFF_SIZE 2000 // Based on typical path MTU of 1500
+#define FF_PROXY_CLEAN_INTERVAL_SECS 60
+#define FF_PROXY_OLD_REQUEST_THRESHOLD_SECS 60
 
 int ff_proxy_start(struct ff_config *config)
 {
+    ff_set_logging_level(config->logging_level);
+
     int sockfd;
     struct sockaddr_in bind_address;
 
-    char buffer[BUFF_SIZE];
+    char buffer[FF_PROXY_BUFF_SIZE];
     int recv_len;
     struct sockaddr_storage src_address;
     socklen_t src_address_length;
@@ -32,7 +36,12 @@ int ff_proxy_start(struct ff_config *config)
 
     struct ff_hash_table *requests = ff_hash_table_init(16);
 
-    ff_set_logging_level(config->logging_level);
+    pthread_t cleanup_thread;
+    pthread_attr_t cleanup_thread_attrs;
+    pthread_attr_init(&cleanup_thread_attrs);
+    pthread_attr_setdetachstate(&cleanup_thread_attrs, PTHREAD_CREATE_DETACHED);
+    pthread_create(&cleanup_thread, &cleanup_thread_attrs, (void *)ff_proxy_clean_up_old_requests_loop, (void *)requests);
+    pthread_attr_destroy(&cleanup_thread_attrs);
 
     ff_log(FF_DEBUG, "Initialising OpenSSL");
     ff_init_openssl();
@@ -129,7 +138,7 @@ void ff_proxy_process_incoming_packet(struct ff_config *config, struct ff_hash_t
 
         if (memcmp(&request->source, src_address, sizeof(struct sockaddr)) != 0)
         {
-            ff_log(FF_WARNING, "Incoming packet IP address does not match original source IP address for request %s (will discard)", request->request_id);
+            ff_log(FF_WARNING, "Incoming packet IP address does not match original source IP address/port for request %lu (will discard)", request->request_id);
             goto done;
         }
 
@@ -213,4 +222,42 @@ cleanup:
 
     ff_request_free(request);
     FREE(args);
+}
+
+void ff_proxy_clean_up_old_requests_loop(struct ff_hash_table *requests)
+{
+    while (1)
+    {
+        sleep(FF_PROXY_CLEAN_INTERVAL_SECS);
+
+        ff_log(FF_DEBUG, "Cleaning up partially send requests which have expired");
+
+        time_t now;
+        time(&now);
+
+        struct ff_hash_table_iterator *iterator = ff_hash_table_iterator_init(requests);
+        struct ff_request *request = NULL;
+        struct ff_request **requests_to_remove = (struct ff_request **)calloc(1, requests->length * sizeof(struct ff_request *));
+        uint32_t count = 0;
+
+        while ((request = ff_hash_table_iterator_next(iterator)) != NULL)
+        {
+            bool has_expired = request->state == FF_REQUEST_STATE_RECEIVING &&
+                               difftime(now, request->received_at) >= FF_PROXY_OLD_REQUEST_THRESHOLD_SECS;
+
+            if (has_expired)
+            {
+                requests_to_remove[count++] = request;
+            }
+        }
+
+        ff_hash_table_iterator_free(iterator);
+
+        for (uint32_t i = 0; i < count; i++)
+        {
+            ff_hash_table_remove_item(requests, requests_to_remove[i]->request_id);
+        }
+
+        ff_log(count == 0 ? FF_DEBUG : FF_WARNING, "Cleaned up %u expired requests", count);
+    }
 }

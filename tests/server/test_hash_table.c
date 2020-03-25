@@ -356,6 +356,7 @@ void test_hash_table_iterator_init_empty()
 
     TEST_ASSERT_EQUAL_MESSAGE(hash_table, iterator->hash_table, "hash table check failed");
     TEST_ASSERT_EQUAL_MESSAGE(NULL, iterator->current_node, "current node check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(false, iterator->started, "started check failed");
 
     ff_hash_table_iterator_free(iterator);
 
@@ -372,8 +373,8 @@ void test_hash_table_iterator_init_with_item()
     struct ff_hash_table_iterator *iterator = ff_hash_table_iterator_init(hash_table);
 
     TEST_ASSERT_EQUAL_MESSAGE(hash_table, iterator->hash_table, "hash table check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(1, iterator->current_node->item_id, "current node > item id check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(item, iterator->current_node->value, "current node > value check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(NULL, iterator->current_node, "current node check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(false, iterator->started, "started check failed");
 
     ff_hash_table_iterator_free(iterator);
 
@@ -393,19 +394,27 @@ void test_hash_table_iterator_next()
     struct ff_hash_table_iterator *iterator = ff_hash_table_iterator_init(hash_table);
     char *next_return;
 
+    TEST_ASSERT_EQUAL_MESSAGE(NULL, iterator->current_node, "current node (1) check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(false, iterator->started, "started (1) check failed");
+
+    next_return = ff_hash_table_iterator_next(iterator);
+
     TEST_ASSERT_EQUAL_MESSAGE(1, iterator->current_node->item_id, "current node > item id (1) check failed");
     TEST_ASSERT_EQUAL_MESSAGE(item_1, iterator->current_node->value, "current node > value (1) check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(true, iterator->started, "started (2) check failed");
 
     next_return = ff_hash_table_iterator_next(iterator);
 
     TEST_ASSERT_EQUAL_MESSAGE(2, iterator->current_node->item_id, "current node > item id (2) check failed");
     TEST_ASSERT_EQUAL_MESSAGE(item_2, iterator->current_node->value, "current node > value (2) check failed");
     TEST_ASSERT_EQUAL_MESSAGE(item_2, next_return, "return (2) check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(true, iterator->started, "started (2) check failed");
 
     next_return = ff_hash_table_iterator_next(iterator);
 
     TEST_ASSERT_EQUAL_MESSAGE(NULL, iterator->current_node, "current node (3) check failed");
     TEST_ASSERT_EQUAL_MESSAGE(NULL, next_return, "return (3) check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(true, iterator->started, "started (2) check failed");
 
     ff_hash_table_iterator_free(iterator);
 
