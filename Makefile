@@ -15,7 +15,7 @@ CLIENT_LIBS=-lssl -lcrypto
 
 build: build_server build_client
 
-build_server: setup main.o config.o server.o request.o parser.o constants.o hash_table.o crypto.o http.o logging.o 
+build_server: setup main.o config.o server.o request.o parser.o constants.o hash_table.o crypto.o http.o signals.o logging.o
 	$(LD) $(LD_FLAGS) -o build/server $(wildcard build/obj/*.o) $(SERVER_LIBS)
 
 build_client: setup client/main.o client/client.o client/config.o client/crypto.o config.o logging.o request.o crypto.o
@@ -54,6 +54,9 @@ crypto.o: src/crypto.c
 	$(CC) $(CC_FLAGS) -c $< -o build/obj/$@
 
 http.o: src/http.c
+	$(CC) $(CC_FLAGS) -c $< -o build/obj/$@
+
+signals.o: src/signals.c
 	$(CC) $(CC_FLAGS) -c $< -o build/obj/$@
 
 # Client
