@@ -1,7 +1,7 @@
-# FF proxy
+# FF Proxy
 
 FF is a proxy server which enables you to _fire and forget_ HTTP requests.
-That is, sending a HTTP request to a remote server, without waiting for a response or even the network latency required to establish a connection to that server. 
+That is, sending a HTTP request to a remote server, without waiting for a response or even the network latency required to establish a connection to that server.
 
 Additionally, FF provides the ability to protect sensitive payloads by encrypting the data in transit between both the client and upstream servers.
 
@@ -30,9 +30,10 @@ The so-called random numbers are known as _sequence numbers_ and correspond to t
 However I digress, the TCP handshake process involves sending, at minimum, two packets between the client and remote server before a HTTP request (or any payload for that matter) is able to be exchanged, hence the client must wait for at least one network round trip before sending the HTTP request payload.
 
 On the other hand, we have the UDP protocol. UDP is very simple comparatively and does not provide the guarantees that TCP does. Essentially UDP allows
- - a client to send independent packets of data
- - receive independent packet of data
- - broadcast packets to multiple hosts (cool but not relevant here)
+
+- a client to send independent packets of data
+- receive independent packet of data
+- broadcast packets to multiple hosts (cool but not relevant here)
 
 ![UDP Communication](https://www.lucidchart.com/publicSegments/view/05fbc518-1dba-4df5-8a45-70affb1c106f/image.png)
 
@@ -42,15 +43,21 @@ FF Proxy makes it possible to send HTTP requests over UDP by acting as the middl
 
 ![FF Proxy](https://www.lucidchart.com/publicSegments/view/1a17a71b-13fd-467d-8380-ccc6d0622514/image.png)
 
-Hence FF proxy allows clients to reduce HTTP request latency to near zero at the cost not receiving the HTTP response from the remote server.
+Hence FF proxy allows clients to reduce HTTP request latency to near zero at the cost not receiving the HTTP response from the remote server or any guarantees that the request was even received.
 
-### Large requests
+### FF Protocol
 
-TODO
+FF supports forwarding a raw HTTP request message encapsulated within a single UDP packet. However UDP packet sizes are often restricted by the a path MTU, often less than 1500 bytes per packet.
+
+To support forwarding larger HTTP requests, FF implements it's own protocol layer on top of UDP.
+This protocol supports the fragmentation of HTTP requests into a stream of UDP packets. These packets are then reassembled as they are received by an FF proxy and forwarded over TCP once reassembly completes.
+The structure of an FF packet is divided into a fixed length header, followed by multiple request options and finally followed by the payload.
+
+![FF Packet structure](https://www.lucidchart.com/publicSegments/view/7fd9c439-c776-4f96-bca9-d99f1a80eef9/image.png)
 
 ### Encryption and HTTPS
 
-TODO
+FF supports the protection of sensitive payloads in transit by performing encryption between the client and FF as well as initiating HTTPS requests to upstream servers. Since the client and an FF proxy do not perform bidirectional communication, no key negotiation can take place. Hence FF implements symmetric encryption (AES-256-GCM) using a pre-shared key between that is configured and known to both the clients and the proxy.
 
 ## Usage
 
