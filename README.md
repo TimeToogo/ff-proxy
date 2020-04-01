@@ -81,7 +81,7 @@ Or it can be [installed locally from the source](/docs/installing-from-source.md
 The most primitive interaction with FF proxy can be initiated using `netcat`:
 
 ```bash
-# Send unencrypted, HTTP GET request to google via a local FF proxy on port 1234
+# Send an unencrypted HTTP GET request to google via a local FF proxy on port 1234
 echo "GET / HTTP/1.1\nHost: www.google.com\n\n" | nc -uw0 127.0.0.1 1234
 ```
 
