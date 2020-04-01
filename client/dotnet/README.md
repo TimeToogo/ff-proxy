@@ -7,8 +7,7 @@ FF includes a client written in C# .NET Core v3.
 Install the latest prerelease version of FfClient from NuGet:
 
 ```
-dotnet add package FfClient --version 1.0.0-prerelease-2
-0200321140517
+dotnet add package FfClient --version 1.0.0-prerelease-20200321140517
 ```
 
 See latest versions [here](https://www.nuget.org/packages/FfClient/)
