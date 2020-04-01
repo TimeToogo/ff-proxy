@@ -6,7 +6,7 @@ FF includes a client written in C. This is designed to be used via the CLI for t
 
 Recommended usage is via Docker:
 
-```
+```bash
 # Send HTTPS GET request to google
 # (replace IP address and port with that of FF proxy)
 echo "GET / HTTP/1.1\nHost: www.google.com\n\n" | docker run --rm -i \
