@@ -1,4 +1,4 @@
-import FfClient, { FfRequestOptions } from "../src/client";
+import { FfClient, FfRequestOptions } from "../src/client";
 import { TcpToFfSocket } from "../src";
 
 describe("TcpToFfSocket", () => {

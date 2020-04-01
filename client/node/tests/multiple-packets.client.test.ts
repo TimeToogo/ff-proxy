@@ -1,4 +1,4 @@
-import FfClient from "../src/client";
+import { FfClient } from "../src/client";
 import {
   FfRequestVersion,
   FfRequestOptionType,

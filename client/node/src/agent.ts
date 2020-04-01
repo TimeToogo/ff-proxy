@@ -1,9 +1,7 @@
-import dns from "dns";
-import dgram from "dgram";
 import net from "net";
 import createDebug from "debug";
 import { Agent, ClientRequest, RequestOptions } from "agent-base";
-import FfClient, { FfClientOptions } from "./client";
+import { FfClient, FfClientOptions } from "./client";
 import { TcpToFfSocket, TcpToFfSocketOptions } from "./tcp-to-ff-socket";
 
 const debug = createDebug("ff-client");

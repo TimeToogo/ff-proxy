@@ -33,7 +33,7 @@ interface Packet {
 
 const MAX_PACKET_LENGTH = 1300;
 
-export default class FfClient {
+export class FfClient {
   constructor(private readonly config: FfClientOptions) {
     if (this.config.preSharedKey && this.config.preSharedKey.length > 32) {
       throw new Error(`Pre-shared key cannot be longer than 32 chars`);

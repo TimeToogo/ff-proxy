@@ -1,6 +1,6 @@
 import net from "net";
 import stream from "stream";
-import FfClient from "./client";
+import { FfClient } from "./client";
 import { STATUS_CODES } from "http";
 
 export interface TcpToFfSocketOptions {
