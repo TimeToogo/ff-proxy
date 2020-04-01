@@ -10,10 +10,10 @@ This project was merely a learning exercise as well as my first sizeable project
 
 ## How it works
 
-In summary, FF proxy server listens for HTTP requests over UDP and forwards them to the destination servers over TCP for processing.
+In summary, FF proxy server listens for HTTP requests over UDP and forwards them to their destination server over TCP for processing.
 
 For the readers not familiar with the protocols discussed here, read on.
-HTTP requests and responses are [almost](https://en.wikipedia.org/wiki/HTTP/3) always transmitted over a TCP connection. The TCP protocol provides ensures that data is exchanged accurately and reliably. In doing so, much of the communication between a client and server is for the purpose of verifying the has been data exchanged correctly rather than performing the data exchange itself.
+HTTP requests and responses are [almost](https://en.wikipedia.org/wiki/HTTP/3) always transmitted over a TCP connection. The TCP protocol ensures that data is exchanged accurately and reliably. In doing so, much of the communication between a client and server is for the purpose of verifying the has been data exchanged correctly rather than performing the data exchange itself.
 
 To establish a TCP connection, a "handshake" must be completed between the client and the server using an exchange of SYN and ACK packets.
 
@@ -21,7 +21,7 @@ To establish a TCP connection, a "handshake" must be completed between the clien
 
 In ELI5 terms:
 
-- the client says "hello, here is a random number 123456" to the server"
+- the client says "hello, here is a random number 123456" to the server
 - the server responds with a "hi there, i received your number 123456, my random number is 654321"
 - finally the client says "thanks for your number, here is the data I want to send you ...".
 
@@ -29,11 +29,11 @@ The so-called random numbers are known as _sequence numbers_ and correspond to t
 
 However I digress, the TCP handshake process involves sending, at minimum, two packets between the client and remote server before a HTTP request (or any payload for that matter) is able to be exchanged, hence the client must wait for at least one network round trip before sending the HTTP request payload.
 
-On the other hand, we have the UDP protocol. UDP is very simple comparatively and does not provide the reliability and integrity guarantees that TCP does. Essentially UDP allows
+On the other hand, we have the UDP protocol. UDP is very simple comparatively and does not provide the reliability guarantees of TCP. Essentially UDP supports:
 
-- a client to send independent packets of data
-- receive independent packet of data
-- broadcast packets to multiple hosts (cool but not relevant here)
+- sending independent packets of data
+- receiving independent packets of data
+- broadcasting packets to multiple hosts (cool but not relevant here)
 
 ![UDP Communication](https://www.lucidchart.com/publicSegments/view/05fbc518-1dba-4df5-8a45-70affb1c106f/image.png)
 
@@ -47,17 +47,17 @@ Hence FF proxy allows clients to reduce HTTP request latency to near zero at the
 
 ### FF Protocol
 
-FF supports forwarding a raw HTTP request message encapsulated within a single UDP packet. However UDP packet sizes are often restricted by the a [path MTU](https://en.wikipedia.org/wiki/Path_MTU_Discovery), often less than 1500 bytes per packet.
+FF supports forwarding a raw HTTP request message encapsulated within a single UDP packet. However UDP packet sizes are often restricted by a [path MTU](https://en.wikipedia.org/wiki/Path_MTU_Discovery), often less than 1500 bytes per packet.
 
 To support forwarding larger HTTP requests, FF implements it's own protocol layer on top of UDP.
-This protocol supports the fragmentation of HTTP requests into a stream of UDP packets. These packets are then reassembled as they are received by an FF proxy and forwarded over TCP once reassembly completes.
+This protocol supports the fragmentation of HTTP requests into a stream of UDP packets. These packets are then reassembled as they are received by an FF proxy and consequently, the HTTP request is forwarded over TCP once reassembly completes.
 The structure of an FF packet is divided into a fixed length header, followed by multiple request options and finally followed by the payload.
 
 ![FF Packet structure](https://www.lucidchart.com/publicSegments/view/7fd9c439-c776-4f96-bca9-d99f1a80eef9/image.png)
 
 ### Encryption and HTTPS
 
-FF supports the protection of sensitive payloads in transit by performing encryption between the client and FF as well as initiating HTTPS requests to upstream servers. Since the client and FF proxy do not perform bidirectional communication, no key negotiation can take place. Hence FF implements symmetric encryption (AES-256-GCM) using a pre-shared key between that is configured on both the client and the proxy.
+FF supports the protection of sensitive payloads in transit by performing encryption between the client and the proxy in combination with initiating a HTTPS request to the upstream server. Since the client and FF proxy do not perform bidirectional communication, no key negotiation can take place. Hence FF implements symmetric encryption (AES-256-GCM) using a pre-shared key between that is configured on both the client and the proxy.
 
 ## Usage
 
@@ -97,9 +97,9 @@ echo "GET / HTTP/1.1\nHost: www.google.com\n\n" | nc -uw0 127.0.0.1 1234
 ### Clients
 
 This project also includes client SDKs which can used to initiate requests to an FF proxy.
-The following languages have clients available:
+The following languages have client libraries available:
 
-- [C](./client/c/)
+- [C (cli)](./client/c/)
 - [node.js](./client/node/)
 - [.NET Core](./client/dotnet/)
 - [Python](./client/python/)
