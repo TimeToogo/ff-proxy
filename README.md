@@ -21,15 +21,15 @@ To establish a TCP connection, a "handshake" must be completed between the clien
 
 In ELI5 terms:
 
-- the client says "hello, here is a random number 123456" to the server
+- the client says "hello, here is a random number 123456" to the server"
 - the server responds with a "hi there, i received your number 123456, my random number is 654321"
 - finally the client says "thanks for your number, here is the data I want to send you ...".
 
-The so-called random numbers are known as _sequence numbers_ and correspond to the current offset of the data sent or received over the connection.
+The so-called random numbers are known as _sequence numbers_ and correspond to the current offset of the data sent or received over the connection, relative to the initial sequence number.
 
 However I digress, the TCP handshake process involves sending, at minimum, two packets between the client and remote server before a HTTP request (or any payload for that matter) is able to be exchanged, hence the client must wait for at least one network round trip before sending the HTTP request payload.
 
-On the other hand, we have the UDP protocol. UDP is very simple comparatively and does not provide the guarantees that TCP does. Essentially UDP allows
+On the other hand, we have the UDP protocol. UDP is very simple comparatively and does not provide the reliability and integrity guarantees that TCP does. Essentially UDP allows
 
 - a client to send independent packets of data
 - receive independent packet of data
@@ -47,7 +47,7 @@ Hence FF proxy allows clients to reduce HTTP request latency to near zero at the
 
 ### FF Protocol
 
-FF supports forwarding a raw HTTP request message encapsulated within a single UDP packet. However UDP packet sizes are often restricted by the a path MTU, often less than 1500 bytes per packet.
+FF supports forwarding a raw HTTP request message encapsulated within a single UDP packet. However UDP packet sizes are often restricted by the a [path MTU](https://en.wikipedia.org/wiki/Path_MTU_Discovery), often less than 1500 bytes per packet.
 
 To support forwarding larger HTTP requests, FF implements it's own protocol layer on top of UDP.
 This protocol supports the fragmentation of HTTP requests into a stream of UDP packets. These packets are then reassembled as they are received by an FF proxy and forwarded over TCP once reassembly completes.
@@ -57,7 +57,7 @@ The structure of an FF packet is divided into a fixed length header, followed by
 
 ### Encryption and HTTPS
 
-FF supports the protection of sensitive payloads in transit by performing encryption between the client and FF as well as initiating HTTPS requests to upstream servers. Since the client and an FF proxy do not perform bidirectional communication, no key negotiation can take place. Hence FF implements symmetric encryption (AES-256-GCM) using a pre-shared key between that is configured and known to both the clients and the proxy.
+FF supports the protection of sensitive payloads in transit by performing encryption between the client and FF as well as initiating HTTPS requests to upstream servers. Since the client and FF proxy do not perform bidirectional communication, no key negotiation can take place. Hence FF implements symmetric encryption (AES-256-GCM) using a pre-shared key between that is configured on both the client and the proxy.
 
 ## Usage
 
@@ -66,12 +66,41 @@ FF supports the protection of sensitive payloads in transit by performing encryp
 The recommended installation method is via Docker:
 
 ```
+# This will expose an FF proxy on UDP port 1234 on the host and port 100 in the container
 docker run --rm -it \
     -p 1234:100/udp \
     timetoogo/ff \
     --port 100 \
-    --ip-address 0.0.0.0 \
     -vvv
 ```
 
-TODO Sdks
+Or it can be [installed locally from the source](/docs/installing-from-source.md).
+
+#### Testing
+
+The most primitive interaction with FF proxy can be initiated using `netcat`:
+
+```
+# Send unencrypted, HTTP GET request to google via a local FF proxy on port 1234
+echo "GET / HTTP/1.1\nHost: www.google.com\n\n" | nc -uw0 127.0.0.1 1234
+```
+
+#### Arguments
+
+| Argument                 | Required | Description                                                                                    |
+| ------------------------ | -------- | ---------------------------------------------------------------------------------------------- |
+| `--port <port>`          | Yes      | The UDP port to listen for incoming requests                                                   |
+| `--ip-address <ip>`      | No       | The IP address for which to accept incoming packets, defaulting to wildcard address: _0.0.0.0_ |
+| `--pre-shared-key <key>` | No       | The pre-shared key used to decrypt incoming requests                                           |
+| `-v`, `-vv`, `-vvv`      | No       | Enable verbose logging                                                                         |
+
+### Clients
+
+This project also includes client SDKs which can used to initiate requests to an FF proxy.
+The following languages have clients available:
+
+- [C](./client/c/)
+- [node.js](./client/node/)
+- [.NET Core](./client/dotnet/)
+- [Python](./client/python/)
+- [Java](./client/java/)

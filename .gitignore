@@ -3,6 +3,7 @@
 # Edit at https://www.gitignore.io/?templates=c,macos
 
 .vscode/
+temp/
 
 ### C ###
 # Prerequisites
