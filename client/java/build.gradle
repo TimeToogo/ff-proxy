@@ -46,12 +46,12 @@ test {
 publishing {
     publications {
         mavenJava(MavenPublication) {
-            groupId = 'com.timetoogo.ff-client'
-            artifactId = 'ff-client'
+            groupId = 'com.timetoogo.ffclient'
+            artifactId = 'ffclient'
             version "1.0.0-prerelease-${new Date().format('yyyyMMddHHmmss')}"
             from components.java
             pom {
-                name = 'ff-client'
+                name = 'ffclient'
                 description = 'Client library for ff-proxy'
                 url = 'https://github.com/TimeToogo/ff-proxy'
                 licenses {
@@ -85,8 +85,8 @@ bintray {
 	publications = ['mavenJava']
 
     pkg {
-		repo = 'ff-client'
-		name = 'ff-client'
+		repo = 'ffclient'
+		name = 'ffclient'
 		licenses = ['MIT']
 		vcsUrl = 'https://github.com/TimeToogo/ff-proxy'
 		version {
