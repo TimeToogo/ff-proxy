@@ -20,6 +20,9 @@ jobs:
     - name: Run tests
       run: python -m pipenv run python -m unittest
       working-directory: client/python
+    - name: Sync setup.py dependencies
+      run: python -m pipenv run pipenv-setup sync
+      working-directory: client/python
     - name: Install pep517
       run: python -m pip install pep517 --user
       working-directory: client/python
