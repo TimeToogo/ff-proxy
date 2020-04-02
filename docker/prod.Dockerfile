@@ -7,7 +7,7 @@ RUN apk add --update alpine-sdk openssl-dev
 
 # Build ff
 RUN cd /code && \
-    make build && \
+    FF_OPTIMIZE=1 make build && \
     make install
 
 FROM alpine:latest

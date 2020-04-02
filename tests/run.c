@@ -27,9 +27,11 @@ int main(void)
     RUN_TEST(test_hello_world);
 
     RUN_TEST(test_request_option_node_alloc);
-    RUN_TEST(test_request_option_node_free);
     RUN_TEST(test_request_payload_node_alloc);
+#ifndef FF_OPTIMIZE
+    RUN_TEST(test_request_option_node_free);
     RUN_TEST(test_request_payload_node_free);
+#endif
     RUN_TEST(test_request_alloc);
     RUN_TEST(test_request_free);
 

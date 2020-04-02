@@ -103,7 +103,7 @@ int ff_proxy_start(struct ff_config *config)
 void ff_proxy_process_incoming_packet(struct ff_config *config, struct ff_hash_table *requests, struct sockaddr *src_address, void *packet_buff, int buff_len)
 {
     bool is_raw_http = ff_request_is_raw_http(buff_len, packet_buff);
-    uint64_t request_id;
+    uint64_t request_id = 0;
     struct ff_request *request;
     pthread_t thread;
     pthread_attr_t thread_attrs;

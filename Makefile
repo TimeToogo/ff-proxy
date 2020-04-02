@@ -8,8 +8,14 @@
 LD=gcc
 CC=gcc
 
-CC_FLAGS=-Wall
-LD_FLAGS=-Wall 
+ifeq ($(FF_OPTIMIZE), 1)
+OPTIMISE_FLAGS=-O3 -DFF_OPTIMIZE=1
+else
+OPTIMISE_FLAGS=
+endif
+
+CC_FLAGS=-Wall $(OPTIMISE_FLAGS)
+LD_FLAGS=-Wall $(OPTIMISE_FLAGS)
 SERVER_LIBS=-lssl -lcrypto -lpthread
 CLIENT_LIBS=-lssl -lcrypto
 
