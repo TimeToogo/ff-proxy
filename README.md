@@ -27,7 +27,7 @@ In ELI5 terms:
 
 The so-called random numbers are known as _sequence numbers_ and correspond to the current offset of the data sent or received over the connection, relative to the initial sequence number.
 
-However I digress, the TCP handshake process involves sending, at minimum, two packets between the client and remote server before a HTTP request (or any payload for that matter) is able to be exchanged, hence the client must wait for at least one network round trip before sending the HTTP request payload.
+However I digress, the TCP handshake process involves transferring, at minimum, two packets between the client and remote server before data is able to be exchanged across the connection, hence the client must wait for at least one network round trip before initiating a HTTP request.
 
 On the other hand, we have the UDP protocol. UDP is very simple comparatively and does not provide the reliability guarantees of TCP. Essentially UDP supports:
 
@@ -76,15 +76,6 @@ docker run --rm -it \
 
 Or it can be [installed locally from the source](/docs/installing-from-source.md).
 
-#### Testing
-
-The most primitive interaction with FF proxy can be initiated using `netcat`:
-
-```bash
-# Send an unencrypted HTTP GET request to google via a local FF proxy on port 1234
-echo "GET / HTTP/1.1\nHost: www.google.com\n\n" | nc -uw0 127.0.0.1 1234
-```
-
 #### Arguments
 
 | Argument                 | Required | Description                                                                                    |
@@ -93,6 +84,15 @@ echo "GET / HTTP/1.1\nHost: www.google.com\n\n" | nc -uw0 127.0.0.1 1234
 | `--ip-address <ip>`      | No       | The IP address for which to accept incoming packets, defaulting to wildcard address: _0.0.0.0_ |
 | `--pre-shared-key <key>` | No       | The pre-shared key used to decrypt incoming requests                                           |
 | `-v`, `-vv`, `-vvv`      | No       | Enable verbose logging                                                                         |
+
+#### Testing
+
+The most primitive interaction with FF proxy can be initiated using `netcat`:
+
+```bash
+# Send an unencrypted HTTP GET request to google via a local FF proxy on port 1234
+echo "GET / HTTP/1.1\nHost: www.google.com\n\n" | nc -uw0 127.0.0.1 1234
+```
 
 ### Clients
 

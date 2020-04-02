@@ -1,6 +1,6 @@
 # FF Proxy - Node Client
 
-FF includes a client library for node.js
+FF includes a client library for Node.js written in Typescript.
 
 ## Installation
 
