@@ -45,7 +45,7 @@ FF Proxy makes it possible to send HTTP requests over UDP by acting as the middl
 
 Hence FF proxy allows clients to reduce HTTP request latency to near zero at the cost not receiving the HTTP response from the remote server or any guarantees that the request was even received.
 
-### FF Protocol
+### FF protocol
 
 FF supports forwarding a raw HTTP request message encapsulated within a single UDP packet. However UDP packet sizes are often restricted by a [path MTU](https://en.wikipedia.org/wiki/Path_MTU_Discovery), often less than 1500 bytes per packet.
 
@@ -96,11 +96,11 @@ echo "GET / HTTP/1.1\nHost: www.google.com\n\n" | nc -uw0 127.0.0.1 1234
 
 ### Clients
 
-This project also includes client SDKs which can used to initiate requests to an FF proxy.
+This project also includes client libraries which can used to initiate requests to an FF proxy.
 The following languages have client libraries available:
 
 - [C (cli)](./client/c/README.md)
-- [node.js](./client/node/README.md)
+- [Node.js](./client/node/README.md)
 - [.NET Core](./client/dotnet/README.md)
 - [Python](./client/python/README.md)
 - [Java](./client/java/README.md)
