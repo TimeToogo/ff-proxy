@@ -9,5 +9,5 @@ void ff_sigint_handler(int signal)
 {
     char message[] = "Interrupt signal received, terminating process!\n";
     write(STDOUT_FILENO, message, sizeof(message));
-    exit(0);
+    exit(1);
 }

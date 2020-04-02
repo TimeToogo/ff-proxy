@@ -2,4 +2,4 @@
 
 docker build -t ff-dev -f ./docker/dev.Dockerfile .
 
-docker run --rm -it -v$PWD:/app ff-dev $@
+docker run -e FF_OPTIMIZE --rm -it -v$PWD:/app ff-dev $@
