@@ -10,6 +10,9 @@ jobs:
     - name: Build project
       working-directory: client/dotnet
       run: dotnet build --configuration Release
+    - name: Test project
+      working-directory: client/dotnet
+      run: dotnet test
     - name: Create nupkg
       working-directory: client/dotnet
       run: dotnet pack --no-build --configuration Release --version-suffix prerelease-$(date +%Y%m%d%H%M%S) --output ./out
