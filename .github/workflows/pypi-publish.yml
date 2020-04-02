@@ -15,7 +15,7 @@ jobs:
       run: pip install pipenv --user
       working-directory: client/python
     - name: Install dependencies
-      run: python -m pipenv sync
+      run: python -m pipenv sync --dev
       working-directory: client/python 
     - name: Run tests
       run: python -m pipenv run python -m unittest
