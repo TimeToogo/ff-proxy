@@ -72,7 +72,7 @@ void ff_request_parse_first_chunk(struct ff_request *request, uint32_t buff_size
 
     if (buff_size < sizeof(struct __raw_ff_request_header))
     {
-        ff_log(FF_WARNING, "Packet buffer to small to contain header (%d)", buff_size);
+        ff_log(FF_WARNING, "Packet buffer too small to contain header (%d)", buff_size);
         request->state = FF_REQUEST_STATE_RECEIVING_FAIL;
         return;
     }
