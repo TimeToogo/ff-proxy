@@ -6,7 +6,7 @@ That is, sending a HTTP request to a remote server, without waiting for a respon
 Additionally, FF provides the ability to protect sensitive payloads by encrypting the data in transit between both the client and upstream servers.
 
 **Disclaimer:**
-This project was merely a learning exercise as well as my first sizeable project delving into C or even systems programming as a whole. Please do **not** use this in production.
+This project was merely a learning exercise as well as my first sizeable project delving into C or even systems programming as a whole. If you somehow manage to find a use-case, please do **not** use this in production.
 
 ## How it works
 
@@ -99,8 +99,8 @@ echo "GET / HTTP/1.1\nHost: www.google.com\n\n" | nc -uw0 127.0.0.1 1234
 This project also includes client SDKs which can used to initiate requests to an FF proxy.
 The following languages have client libraries available:
 
-- [C (cli)](./client/c/)
-- [node.js](./client/node/)
-- [.NET Core](./client/dotnet/)
-- [Python](./client/python/)
-- [Java](./client/java/)
+- [C (cli)](./client/c/README.md)
+- [node.js](./client/node/README.md)
+- [.NET Core](./client/dotnet/README.md)
+- [Python](./client/python/README.md)
+- [Java](./client/java/README.md)

@@ -35,6 +35,7 @@ namespace Example
             {
                 IPAddress = IPAddress.Loopback,
                 Port = 8080,
+                PreSharedKey = "mykey"
             };
 
             var client = new FfClient.FfClient(config);
@@ -70,13 +71,14 @@ namespace Example
             {
                 IPAddress = IPAddress.Loopback,
                 Port = 8080,
+                PreSharedKey = "mykey"
             };
 
             var handler = new FfHttpRequestHandler(
                 config,
                 mockResponse: new HttpResponseMessage()
                 {
-                    StatusCode = HttpStatusCode.Created
+                    StatusCode = HttpStatusCode.OK
                 }
             );
 

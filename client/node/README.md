@@ -1,6 +1,6 @@
 # FF Proxy - Node Client
 
-FF includes a client for node.js
+FF includes a client library for node.js
 
 ## Installation
 
@@ -16,14 +16,15 @@ See latest versions [here](https://www.npmjs.com/package/@timetoogo/ff-client)
 
 ### Using FfClient
 
-The `FfClient` class provides the ability to send a raw HTTP request to an FF proxy:
+The `FfClient` class provides the ability to send a HTTP request to an FF proxy:
 
 ```js
 const { FfClient } = require("@timetoogo/ff-client");
 
 const client = new FfClient({
   ipAddress: "127.0.0.1",
-  port: 8080
+  port: 8080,
+  preSharedKey: 'mykey'
 });
 
 client.sendRequest({
@@ -43,6 +44,7 @@ const { FfClientAgent } = require("@timetoogo/ff-client");
 const agent = new FfClientAgent({
   ipAddress: "127.0.0.1",
   port: 8080,
+  preSharedKey: 'mykey',
   mockResponse: 200
 });
 
