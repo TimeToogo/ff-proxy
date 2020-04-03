@@ -225,7 +225,7 @@ void ff_hash_table_remove_item(struct ff_hash_table *hash_table, uint64_t item_i
     if (buckets->nodes == NULL)
     {
         // Walk back up tree clearing unused buckets
-        for (uint8_t level = hash_table->bucket_levels - 2; level >= 0; level--)
+        for (uint8_t level = hash_table->bucket_levels - 2; ; level--)
         {
             bool should_free = true;
             union ff_hash_table_bucket *bucket_level = bucket_list[level];
