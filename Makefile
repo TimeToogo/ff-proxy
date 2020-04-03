@@ -14,8 +14,8 @@ else
 OPTIMISE_FLAGS=
 endif
 
-CC_FLAGS=-Wall $(OPTIMISE_FLAGS)
-LD_FLAGS=-Wall $(OPTIMISE_FLAGS)
+CC_FLAGS=-Wall -Wextra $(OPTIMISE_FLAGS)
+LD_FLAGS=-Wall -Wextra $(OPTIMISE_FLAGS)
 SERVER_LIBS=-lssl -lcrypto -lpthread
 CLIENT_LIBS=-lssl -lcrypto
 
