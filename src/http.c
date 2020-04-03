@@ -146,7 +146,7 @@ bool ff_http_send_request_unencrypted(struct ff_request *request, char *host_nam
         }
 
         sent += chunk;
-    } while (sent < request->payload_length);
+    } while (sent < (int)request->payload_length);
 
     ff_log(FF_DEBUG, "Finished sending request to %s over HTTP (%d bytes sent)", host_name, sent);
 
@@ -171,7 +171,7 @@ bool ff_http_send_request_unencrypted(struct ff_request *request, char *host_nam
         {
             break;
         }
-    } while (received < sizeof(response) - 1);
+    } while (received < (int)sizeof(response) - 1);
 
     ff_log(FF_DEBUG, "Finished receiving response from %s (%d bytes received)", host_name, received);
     size_t response_header_length = strchr((char *)response, '\n') - response;

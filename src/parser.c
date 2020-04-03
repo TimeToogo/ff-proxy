@@ -47,7 +47,7 @@ bool ff_request_is_raw_http(uint32_t buff_size, void *buff)
 
     bool is_raw_http = false;
 
-    for (int i = 0; i < (sizeof(HTTP_METHODS) / sizeof(HTTP_METHODS[0])); i++)
+    for (int i = 0; i < (int)(sizeof(HTTP_METHODS) / sizeof(HTTP_METHODS[0])); i++)
     {
         is_raw_http |= strncmp(HTTP_METHODS[i], buff, strlen(HTTP_METHODS[i])) == 0;
 
