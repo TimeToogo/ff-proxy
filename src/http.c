@@ -85,9 +85,9 @@ bool ff_http_send_request_unencrypted(struct ff_request *request, char *host_nam
     char formatted_address[INET6_ADDRSTRLEN] = {0};
     struct timeval timeout = {.tv_sec = FF_HTTP_RESPONSE_MAX_WAIT_SECS, .tv_usec = 0};
     int sockfd = 0;
-    int chunk = 0;
-    int sent = 0;
-    int received = 0;
+    ssize_t chunk = 0;
+    uint32_t sent = 0;
+    uint32_t received = 0;
     char response[FF_HTTP_RESPONSE_BUFF_SIZE] = {0};
 
     if (host_name == NULL)
@@ -145,8 +145,8 @@ bool ff_http_send_request_unencrypted(struct ff_request *request, char *host_nam
             break;
         }
 
-        sent += chunk;
-    } while (sent < (int)request->payload_length);
+        sent += (uint32_t)chunk;
+    } while (sent < request->payload_length);
 
     ff_log(FF_DEBUG, "Finished sending request to %s over HTTP (%d bytes sent)", host_name, sent);
 
@@ -165,13 +165,13 @@ bool ff_http_send_request_unencrypted(struct ff_request *request, char *host_nam
             break;
         }
 
-        received += chunk;
+        received += (uint32_t)chunk;
 
         if (received > 0 && strncasecmp(response, "HTTP/", 5) == 0)
         {
             break;
         }
-    } while (received < (int)sizeof(response) - 1);
+    } while (received < sizeof(response) - 1);
 
     ff_log(FF_DEBUG, "Finished receiving response from %s (%d bytes received)", host_name, received);
     size_t response_header_length = strchr((char *)response, '\n') - response;
