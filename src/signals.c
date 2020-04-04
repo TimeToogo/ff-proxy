@@ -8,6 +8,7 @@
 void ff_sigint_handler(int signal __attribute__((unused)))
 {
     char message[] = "Interrupt signal received, terminating process!\n";
-    int result __attribute__((unused)) = write(STDOUT_FILENO, message, sizeof(message));
+    int result __attribute__((unused));
+    result = write(STDOUT_FILENO, message, sizeof(message));
     exit(1);
 }
