@@ -24,16 +24,16 @@ int ff_proxy_start(struct ff_config *config)
 {
     ff_set_logging_level(config->logging_level);
 
+    int err;
     int sockfd;
-    struct sockaddr_in bind_address;
-
+    int optval = 1;
+    socklen_t optlen = sizeof(optval);
+    struct addrinfo hints;
+    struct addrinfo *res;
     char buffer[FF_PROXY_BUFF_SIZE];
     int recv_len;
     struct sockaddr_storage src_address;
-    socklen_t src_address_length;
-
-    char ip_string[INET6_ADDRSTRLEN + 1] = {0};
-
+    socklen_t src_address_length = sizeof(src_address);
     struct ff_hash_table *requests = ff_hash_table_init(16);
 
     pthread_t cleanup_thread;
@@ -47,12 +47,19 @@ int ff_proxy_start(struct ff_config *config)
     ff_init_openssl();
     ff_log(FF_DEBUG, "Initialised OpenSSL");
 
-    inet_ntop(AF_INET, &config->ip_address, ip_string, sizeof(ip_string));
-    ff_log(FF_INFO, "Starting UDP proxy on %.16s:%d", ip_string, config->port);
+    ff_log(FF_INFO, "Starting UDP proxy on %s%s%s:%s",
+           strchr(config->ip_address, ':') ? "[" : "", config->ip_address,
+           strchr(config->ip_address, ':') ? "]" : "", config->port);
+
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_DGRAM;
+    hints.ai_flags = AI_NUMERICHOST | AI_NUMERICSERV | AI_PASSIVE;
+    getaddrinfo(config->ip_address, config->port, &hints, &res);
 
     ff_log(FF_DEBUG, "Creating socket");
-    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sockfd == 0)
+    sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+    if (sockfd == -1)
     {
         ff_log(FF_FATAL, "Failed to create socket");
         return EXIT_FAILURE;
@@ -60,18 +67,26 @@ int ff_proxy_start(struct ff_config *config)
 
     ff_log(FF_DEBUG, "Created socket");
 
-    ff_log(FF_DEBUG, "Binding to address");
-    bind_address.sin_family = AF_INET;
-    bind_address.sin_addr = config->ip_address;
-    bind_address.sin_port = htons(config->port);
-
-    int flag = 1;
-    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(flag)) < 0)
+    err = setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &optval, optlen);
+    if (err)
     {
-        ff_log(FF_WARNING, "Failed to set socket option (errno: %d)", errno);
+        ff_log(FF_WARNING, "Failed to set socket option SO_REUSEADDR (errno: %d)", errno);
     }
 
-    if (bind(sockfd, (struct sockaddr *)&bind_address, sizeof(bind_address)))
+    if (res->ai_family == AF_INET6 && config->ipv6_v6only)
+    {
+        ff_log(FF_DEBUG, "Setting IPV6_V6ONLY socket option");
+        err = setsockopt(sockfd, IPPROTO_IPV6, IPV6_V6ONLY, &optval, optlen);
+        if (err)
+        {
+            ff_log(FF_WARNING, "Failed to set socket option IPV6_V6ONLY (errno: %d)", errno);
+        }
+    }
+
+    ff_log(FF_DEBUG, "Binding to address");
+    err = bind(sockfd, res->ai_addr, res->ai_addrlen);
+    freeaddrinfo(res);
+    if (err)
     {
         ff_log(FF_FATAL, "Failed to bind to address");
         return EXIT_FAILURE;
@@ -82,17 +97,21 @@ int ff_proxy_start(struct ff_config *config)
     // A single packet at a time
     while ((recv_len = recvfrom(sockfd, buffer, sizeof(buffer), 0, (struct sockaddr *)&src_address, &src_address_length)))
     {
+        char ip_string[INET6_ADDRSTRLEN];
+
         if (recv_len == -1)
         {
             ff_log(FF_FATAL, "Failed to read from socket");
             return EXIT_FAILURE;
         }
 
-        memset(&ip_string, 0, sizeof(ip_string));
         getnameinfo((struct sockaddr *)&src_address, src_address_length, ip_string, sizeof(ip_string), NULL, 0, NI_NUMERICHOST);
         ff_log(FF_DEBUG, "Received packet of %d bytes from %s", recv_len, ip_string);
 
         ff_proxy_process_incoming_packet(config, requests, (struct sockaddr *)&src_address, buffer, recv_len);
+
+        /* need to reset for subsequent recvfrom()'s */
+        src_address_length = sizeof(src_address);
     }
 
     ff_hash_table_free(requests);

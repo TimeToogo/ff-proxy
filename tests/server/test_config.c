@@ -70,8 +70,8 @@ void test_parse_args_start_proxy()
     action = ff_parse_arguments(&config, sizeof(args) / sizeof(args[0]), args);
 
     TEST_ASSERT_EQUAL_MESSAGE(FF_ACTION_START_PROXY, action, "action check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(8080, config.port, "port check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(htonl(INADDR_LOOPBACK), config.ip_address.s_addr, "ip address check failed");
+    TEST_ASSERT_EQUAL_MESSAGE("8080", config.port, "port check failed");
+    TEST_ASSERT_EQUAL_MESSAGE("127.0.0.1", config.ip_address, "ip address check failed");
     TEST_ASSERT_EQUAL_MESSAGE(FF_ERROR, config.logging_level, "logging level check failed");
 }
 
@@ -84,8 +84,8 @@ void test_parse_args_start_proxy_warning()
     action = ff_parse_arguments(&config, sizeof(args) / sizeof(args[0]), args);
 
     TEST_ASSERT_EQUAL_MESSAGE(FF_ACTION_START_PROXY, action, "action check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(8080, config.port, "port check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(htonl(INADDR_LOOPBACK), config.ip_address.s_addr, "ip address check failed");
+    TEST_ASSERT_EQUAL_MESSAGE("8080", config.port, "port check failed");
+    TEST_ASSERT_EQUAL_MESSAGE("127.0.0.1", config.ip_address, "ip address check failed");
     TEST_ASSERT_EQUAL_MESSAGE(FF_WARNING, config.logging_level, "logging level check failed");
 }
 
@@ -98,8 +98,8 @@ void test_parse_args_start_proxy_info()
     action = ff_parse_arguments(&config, sizeof(args) / sizeof(args[0]), args);
 
     TEST_ASSERT_EQUAL_MESSAGE(FF_ACTION_START_PROXY, action, "action check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(8080, config.port, "port check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(htonl(INADDR_LOOPBACK), config.ip_address.s_addr, "ip address check failed");
+    TEST_ASSERT_EQUAL_MESSAGE("8080", config.port, "port check failed");
+    TEST_ASSERT_EQUAL_MESSAGE("127.0.0.1", config.ip_address, "ip address check failed");
     TEST_ASSERT_EQUAL_MESSAGE(FF_INFO, config.logging_level, "logging level check failed");
 }
 
@@ -112,8 +112,8 @@ void test_parse_args_start_proxy_debug()
     action = ff_parse_arguments(&config, sizeof(args) / sizeof(args[0]), args);
 
     TEST_ASSERT_EQUAL_MESSAGE(FF_ACTION_START_PROXY, action, "action check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(8080, config.port, "port check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(htonl(INADDR_LOOPBACK), config.ip_address.s_addr, "ip address check failed");
+    TEST_ASSERT_EQUAL_MESSAGE("8080", config.port, "port check failed");
+    TEST_ASSERT_EQUAL_MESSAGE("127.0.0.1", config.ip_address, "ip address check failed");
     TEST_ASSERT_EQUAL_MESSAGE(FF_DEBUG, config.logging_level, "logging level check failed");
     TEST_ASSERT_EQUAL_MESSAGE(NULL, config.encryption_key.key, "encryption key check failed");
 }
@@ -127,8 +127,8 @@ void test_parse_args_start_proxy_psk()
     action = ff_parse_arguments(&config, sizeof(args) / sizeof(args[0]), args);
 
     TEST_ASSERT_EQUAL_MESSAGE(FF_ACTION_START_PROXY, action, "action check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(8080, config.port, "port check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(htonl(INADDR_LOOPBACK), config.ip_address.s_addr, "ip address check failed");
+    TEST_ASSERT_EQUAL_MESSAGE("8080", config.port, "port check failed");
+    TEST_ASSERT_EQUAL_MESSAGE("127.0.0.1", config.ip_address, "ip address check failed");
     TEST_ASSERT_EQUAL_MESSAGE(FF_ERROR, config.logging_level, "logging level check failed");
     TEST_ASSERT_EQUAL_MESSAGE(args[6], config.encryption_key.key, "encryption key check failed");
 }
