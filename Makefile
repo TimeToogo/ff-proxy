@@ -15,7 +15,7 @@ OPTIMISE_FLAGS=
 endif
 
 CC_FLAGS=-Wall -Wextra -std=c99 -D_GNU_SOURCE $(OPTIMISE_FLAGS)
-LD_FLAGS=-Wall -Wextra -std=c99 $(OPTIMISE_FLAGS)
+LD_FLAGS=
 SERVER_LIBS=-lm -lssl -lcrypto -lpthread
 CLIENT_LIBS=-lssl -lcrypto
 
@@ -82,7 +82,7 @@ client/crypto.o: client/c/crypto.c
 # Tests
 
 test_build: build
-	$(LD) $(LD_FLAGS) -o build/tests $(filter-out build/obj/main.o, $(wildcard build/obj/*.o)) \
+	$(CC) $(CC_FLAGS) $(LD_FLAGS) -o build/tests $(filter-out build/obj/main.o, $(wildcard build/obj/*.o)) \
 									 $(filter-out build/obj/client/main.o, $(wildcard build/obj/client/*.o)) \
 									 tests/include/*.c tests/run.c $(SERVER_LIBS)
 
