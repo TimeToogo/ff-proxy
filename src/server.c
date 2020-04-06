@@ -86,6 +86,7 @@ int ff_proxy_start(struct ff_config *config)
     ff_log(FF_DEBUG, "Binding to address");
     err = bind(sockfd, res->ai_addr, res->ai_addrlen);
     freeaddrinfo(res);
+    
     if (err)
     {
         ff_log(FF_FATAL, "Failed to bind to address");

@@ -116,6 +116,7 @@ bool ff_http_send_request_unencrypted(struct ff_request *request, char *host_nam
         ff_log(FF_ERROR, "Failed to open socket");
         goto error;
     }
+
     setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (void *)&timeout, sizeof(timeout));
 
     if (res->ai_family == AF_INET)
@@ -124,12 +125,12 @@ bool ff_http_send_request_unencrypted(struct ff_request *request, char *host_nam
     }
     else
     {
-	inet_ntop(AF_INET6, &((struct sockaddr_in6 *)res->ai_addr)->sin6_addr, formatted_address, INET6_ADDRSTRLEN);
+        inet_ntop(AF_INET6, &((struct sockaddr_in6 *)res->ai_addr)->sin6_addr, formatted_address, INET6_ADDRSTRLEN);
     }
+
     ff_log(FF_DEBUG, "Resolved host %s to ip address %s", host_name, formatted_address);
 
     err = connect(sockfd, res->ai_addr, res->ai_addrlen);
-    freeaddrinfo(res);
     if (err)
     {
         ff_log(FF_WARNING, "Failed to connect to host: %s", host_name);
@@ -193,6 +194,11 @@ done:
     goto cleanup;
 
 cleanup:
+    if (res != NULL)
+    {
+        freeaddrinfo(res);
+    }
+
     if (sockfd != 0)
     {
         close(sockfd);
