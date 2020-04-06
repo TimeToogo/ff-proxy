@@ -1,0 +1,16 @@
+name: 'Pull Request CI'
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - run: make test
+    - run: make test
+      env:
+        FF_OPTIMIZE: 1
