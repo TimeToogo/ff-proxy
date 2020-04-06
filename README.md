@@ -6,7 +6,7 @@ That is, sending a HTTP request to a remote server, without waiting for a respon
 Additionally, FF provides the ability to protect sensitive payloads by encrypting the data in transit between both the client and upstream servers.
 
 **Disclaimer:**
-This project was merely a learning exercise as well as my first sizeable project delving into C or even systems programming as a whole. If you somehow manage to find a use-case, please do **not** use this in production.
+This project was merely a learning exercise as well as my first sizeable project delving into C or even systems programming as a whole. If you somehow manage to find a use-case, please do **not** use this in production. If you need a protocol with reduced reliability and minimal overhead please look into [CoAP](https://en.wikipedia.org/wiki/Constrained_Application_Protocol).
 
 ## How it works
 
