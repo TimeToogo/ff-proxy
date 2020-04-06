@@ -14,9 +14,9 @@ else
 OPTIMISE_FLAGS=
 endif
 
-CC_FLAGS=-Wall -Wextra $(OPTIMISE_FLAGS)
-LD_FLAGS=-Wall -Wextra $(OPTIMISE_FLAGS)
-SERVER_LIBS=-lssl -lcrypto -lpthread
+CC_FLAGS=-Wall -Wextra -std=c99 -D_GNU_SOURCE $(OPTIMISE_FLAGS)
+LD_FLAGS=-Wall -Wextra -std=c99 $(OPTIMISE_FLAGS)
+SERVER_LIBS=-lm -lssl -lcrypto -lpthread
 CLIENT_LIBS=-lssl -lcrypto
 
 build: build_server build_client
