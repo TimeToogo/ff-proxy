@@ -82,7 +82,7 @@ bool ff_http_send_request_unencrypted(struct ff_request *request, char *host_nam
 {
     bool ret;
     struct addrinfo hints;
-    struct addrinfo *res;
+    struct addrinfo *res = NULL;
     char formatted_address[INET6_ADDRSTRLEN] = {0};
     struct timeval timeout = {.tv_sec = FF_HTTP_RESPONSE_MAX_WAIT_SECS, .tv_usec = 0};
     int err;
