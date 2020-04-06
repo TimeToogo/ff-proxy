@@ -372,7 +372,7 @@ cleanup:
 char *ff_http_get_destination_host(struct ff_request *request)
 {
     // @see https://stackoverflow.com/questions/8724954/what-is-the-maximum-number-of-characters-for-a-host-name-in-unix
-    char *host_name = (char *)malloc(_POSIX_HOST_NAME_MAX + 1);
+    char *host_name = malloc(_POSIX_HOST_NAME_MAX + 1);
     char *http_request = (char *)request->payload->value;
     char *line = http_request;
     uint64_t payload_len = request->payload_length;
