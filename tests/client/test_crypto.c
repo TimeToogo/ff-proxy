@@ -11,7 +11,7 @@ void test_client_request_encrypt()
 {
     struct ff_request *request = ff_request_alloc();
     request->options = malloc(sizeof(struct ff_request_option_node *) * FF_REQUEST_MAX_OPTIONS);
-    struct ff_encryption_key key = {.key = (uint8_t *)"testkey"};
+    struct ff_encryption_config config = {.key = (uint8_t *)"testkey", .pbkdf2_iterations = 1000};
 
     char *payload = "hello world";
 
@@ -20,12 +20,12 @@ void test_client_request_encrypt()
     request->payload->length = strlen(payload);
     ff_request_payload_load_buff(request->payload, strlen(payload), payload);
 
-    bool result = ff_client_encrypt_request(request, &key);
+    bool result = ff_client_encrypt_request(request, &config);
 
     TEST_ASSERT_EQUAL_MESSAGE(true, result, "return check failed");
 
-    TEST_ASSERT_EQUAL_MESSAGE(3, request->options_length, "options length check failed");
-    
+    TEST_ASSERT_EQUAL_MESSAGE(5, request->options_length, "options length check failed");
+
     TEST_ASSERT_EQUAL_MESSAGE(FF_REQUEST_OPTION_TYPE_ENCRYPTION_MODE, request->options[0]->type, "option node (1) type check failed");
     TEST_ASSERT_EQUAL_MESSAGE(1, request->options[0]->length, "option node (1) length check failed");
     TEST_ASSERT_EQUAL_MESSAGE(FF_CRYPTO_MODE_AES_256_GCM, request->options[0]->value[0], "option node (1) value check failed");
@@ -35,6 +35,13 @@ void test_client_request_encrypt()
 
     TEST_ASSERT_EQUAL_MESSAGE(FF_REQUEST_OPTION_TYPE_ENCRYPTION_TAG, request->options[2]->type, "option node (3) type check failed");
     TEST_ASSERT_EQUAL_MESSAGE(16, request->options[2]->length, "option node (3) length check failed");
+
+    TEST_ASSERT_EQUAL_MESSAGE(FF_REQUEST_OPTION_TYPE_KEY_DERIVE_MODE, request->options[3]->type, "option node (4) type check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(1, request->options[3]->length, "option node (4) length check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(FF_KEY_DERIVE_MODE_PBKDF2, request->options[3]->value[0], "option node (4) value check failed");
+
+    TEST_ASSERT_EQUAL_MESSAGE(FF_REQUEST_OPTION_TYPE_KEY_DERIVE_SALT, request->options[4]->type, "option node (5) type check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(16, request->options[4]->length, "option node (5) length check failed");
 
     ff_request_free(request);
 }
@@ -56,7 +63,7 @@ void test_client_request_encrypt_and_decrypt_returns_original_payload()
     struct ff_request *request = ff_request_alloc();
     request->options = malloc(sizeof(struct ff_request_option_node *) * FF_REQUEST_MAX_OPTIONS);
 
-    struct ff_encryption_key key = {.key = (uint8_t *)"testkey"};
+    struct ff_encryption_config key = {.key = (uint8_t *)"testkey", .pbkdf2_iterations = 1000};
 
     char *payload = "hello world";
 

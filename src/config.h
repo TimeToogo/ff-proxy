@@ -11,7 +11,7 @@ struct ff_config
 {
     const char *port;
     const char *ip_address;
-    struct ff_encryption_key encryption_key;
+    struct ff_encryption_config encryption;
     enum ff_log_type logging_level;
     bool ipv6_v6only;
 };

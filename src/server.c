@@ -211,7 +211,7 @@ void ff_proxy_process_request(struct ff_process_request_args *args)
 
     ff_request_vectorise_payload(request);
 
-    ff_decrypt_request(request, &config->encryption_key);
+    ff_decrypt_request(request, &config->encryption);
 
     if (request->state != FF_REQUEST_STATE_DECRYPTED)
     {

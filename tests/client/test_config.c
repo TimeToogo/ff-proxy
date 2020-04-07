@@ -116,7 +116,7 @@ void test_client_parse_args_make_request_debug()
     TEST_ASSERT_EQUAL_MESSAGE(8080, config.port, "port check failed");
     TEST_ASSERT_EQUAL_MESSAGE(htonl(INADDR_LOOPBACK), config.ip_address.s_addr, "ip address check failed");
     TEST_ASSERT_EQUAL_MESSAGE(FF_DEBUG, config.logging_level, "logging level check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(NULL, config.encryption_key.key, "encryption key check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(NULL, config.encryption.key, "encryption key check failed");
 }
 
 void test_client_parse_args_make_request_psk()
@@ -131,7 +131,7 @@ void test_client_parse_args_make_request_psk()
     TEST_ASSERT_EQUAL_MESSAGE(8080, config.port, "port check failed");
     TEST_ASSERT_EQUAL_MESSAGE(htonl(INADDR_LOOPBACK), config.ip_address.s_addr, "ip address check failed");
     TEST_ASSERT_EQUAL_MESSAGE(FF_ERROR, config.logging_level, "logging level check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(args[6], config.encryption_key.key, "encryption key check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(args[6], config.encryption.key, "encryption key check failed");
 }
 
 void test_client_parse_args_make_request_https()

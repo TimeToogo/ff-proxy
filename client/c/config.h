@@ -15,7 +15,7 @@ struct ff_client_config
     uint16_t port;
     struct in_addr ip_address;
     bool https;
-    struct ff_encryption_key encryption_key;
+    struct ff_encryption_config encryption;
     enum ff_log_type logging_level;
 };
 

@@ -33,14 +33,13 @@ int ff_client_make_request(struct ff_client_config *config, FILE *fd)
 
     ff_client_read_payload_from_file(request, fd);
 
-    if (config->encryption_key.key != NULL)
+    if (config->encryption.key != NULL)
     {
-        if (!ff_client_encrypt_request(request, &config->encryption_key))
+        if (!ff_client_encrypt_request(request, &config->encryption))
         {
             ff_log(FF_ERROR, "Failed to encrypt payload");
             goto error;
         }
-
         ff_log(FF_DEBUG, "Encrypted payload using pre-shared key (ciphertext length: %u)", request->payload_length);
     }
 

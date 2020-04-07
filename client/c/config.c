@@ -20,7 +20,7 @@ enum ff_client_action ff_client_parse_arguments(struct ff_client_config *config,
     uint16_t port = 0;
     struct in_addr ip_address = {.s_addr = htonl(INADDR_LOOPBACK)};
     enum ff_log_type logging_level = FF_ERROR;
-    struct ff_encryption_key encryption_key = {.key = NULL};
+    struct ff_encryption_config encryption_key = {.key = NULL};
     bool https = false;
     bool parsed_port = false;
 
@@ -125,7 +125,7 @@ enum ff_client_action ff_client_parse_arguments(struct ff_client_config *config,
 
         config->port = port;
         config->ip_address = ip_address;
-        config->encryption_key = encryption_key;
+        config->encryption = encryption_key;
         config->logging_level = logging_level;
         config->https = https;
     }

@@ -7,7 +7,7 @@
 
 bool ff_decrypt_request_aes_256_gcm(
     struct ff_request *request,
-    struct ff_encryption_key *key,
+    struct ff_encryption_config *config,
     uint8_t *iv,
     uint16_t iv_len,
     uint8_t *tag,

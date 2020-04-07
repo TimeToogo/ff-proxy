@@ -115,7 +115,7 @@ void test_parse_args_start_proxy_debug()
     TEST_ASSERT_EQUAL_MESSAGE("8080", config.port, "port check failed");
     TEST_ASSERT_EQUAL_MESSAGE("127.0.0.1", config.ip_address, "ip address check failed");
     TEST_ASSERT_EQUAL_MESSAGE(FF_DEBUG, config.logging_level, "logging level check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(NULL, config.encryption_key.key, "encryption key check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(NULL, config.encryption.key, "encryption key check failed");
 }
 
 void test_parse_args_start_proxy_psk()
@@ -130,7 +130,20 @@ void test_parse_args_start_proxy_psk()
     TEST_ASSERT_EQUAL_MESSAGE("8080", config.port, "port check failed");
     TEST_ASSERT_EQUAL_MESSAGE("127.0.0.1", config.ip_address, "ip address check failed");
     TEST_ASSERT_EQUAL_MESSAGE(FF_ERROR, config.logging_level, "logging level check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(args[6], config.encryption_key.key, "encryption key check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(args[6], config.encryption.key, "encryption key check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(1000, config.encryption.pbkdf2_iterations, "encryption key check failed");
+}
+
+void test_parse_args_start_proxy_psk_pbkdf2_iterations()
+{
+    struct ff_config config;
+    enum ff_action action;
+    char *args[] = {"ff", "--port", "8080", "--ip-address", "127.0.0.1", "--pkbdf2-iterations", "5000"};
+
+    action = ff_parse_arguments(&config, sizeof(args) / sizeof(args[0]), args);
+
+    TEST_ASSERT_EQUAL_MESSAGE(FF_ACTION_START_PROXY, action, "action check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(5000, config.encryption.pbkdf2_iterations, "encryption key check failed");
 }
 
 void test_print_usage()
