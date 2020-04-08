@@ -182,7 +182,7 @@ void ff_proxy_process_incoming_packet(struct ff_config *config, struct ff_hash_t
     case FF_REQUEST_STATE_RECEIVED:
         ff_log(FF_DEBUG, "Finished receiving incoming request");
 
-        thread_args = (struct ff_process_request_args *)malloc(sizeof(struct ff_process_request_args));
+        thread_args = malloc(sizeof(struct ff_process_request_args));
         thread_args->config = config;
         thread_args->request = request;
         thread_args->requests = requests;
@@ -258,7 +258,7 @@ void ff_proxy_clean_up_old_requests_loop(struct ff_hash_table *requests)
 
         struct ff_hash_table_iterator *iterator = ff_hash_table_iterator_init(requests);
         struct ff_request *request = NULL;
-        struct ff_request **requests_to_remove = (struct ff_request **)calloc(1, requests->length * sizeof(struct ff_request *));
+        struct ff_request **requests_to_remove = calloc(1, requests->length * sizeof(struct ff_request *));
         uint32_t count = 0;
 
         while ((request = ff_hash_table_iterator_next(iterator)) != NULL)

@@ -36,13 +36,13 @@ void ff_decrypt_request(struct ff_request *request, struct ff_encryption_key *ke
 
         case FF_REQUEST_OPTION_TYPE_ENCRYPTION_IV:
             iv_len = request->options[i]->length;
-            iv = (uint8_t *)malloc(iv_len);
+            iv = malloc(iv_len);
             memcpy(iv, request->options[i]->value, iv_len * sizeof(uint8_t));
             break;
 
         case FF_REQUEST_OPTION_TYPE_ENCRYPTION_TAG:
             tag_len = request->options[i]->length;
-            tag = (uint8_t *)malloc(tag_len);
+            tag = malloc(tag_len);
             memcpy(tag, request->options[i]->value, tag_len * sizeof(uint8_t));
             break;
 
@@ -133,7 +133,7 @@ bool ff_decrypt_request_aes_256_gcm(
     int len;
     bool ret_val;
 
-    uint8_t *plaintext_buff = (uint8_t *)malloc(request->payload_length * sizeof(uint8_t));
+    uint8_t *plaintext_buff = malloc(request->payload_length * sizeof(uint8_t));
     int plaintext_len = 0;
     int ret;
     struct ff_request_payload_node *payload_chunk = request->payload;
