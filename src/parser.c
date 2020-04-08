@@ -308,7 +308,7 @@ void ff_request_vectorise_payload(struct ff_request *request)
     payload->length = request->payload_length;
     payload->offset = 0;
     payload->next = NULL;
-    payload->value = (uint8_t *)malloc(request->payload_length * sizeof(uint8_t));
+    payload->value = malloc(request->payload_length * sizeof(uint8_t));
 
     struct ff_request_payload_node *node = request->payload;
     struct ff_request_payload_node *tmp_node = NULL;

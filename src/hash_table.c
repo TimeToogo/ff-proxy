@@ -19,7 +19,7 @@ struct ff_hash_table *ff_hash_table_init(uint8_t prefix_bit_length)
 {
     assert(prefix_bit_length > 0);
 
-    struct ff_hash_table *hash_table = (struct ff_hash_table *)malloc(sizeof(struct ff_hash_table));
+    struct ff_hash_table *hash_table = malloc(sizeof(struct ff_hash_table));
 
     hash_table->length = 0;
     *(uint8_t *)&hash_table->prefix_bit_length = prefix_bit_length;
@@ -34,7 +34,7 @@ struct ff_hash_table *ff_hash_table_init(uint8_t prefix_bit_length)
 
 union ff_hash_table_bucket *ff_hash_table_init_bucket()
 {
-    union ff_hash_table_bucket *buckets = (union ff_hash_table_bucket *)calloc(1, sizeof(union ff_hash_table_bucket) * FF_BUCKET_POOL_LENGTH);
+    union ff_hash_table_bucket *buckets = calloc(1, sizeof(union ff_hash_table_bucket) * FF_BUCKET_POOL_LENGTH);
 
     return buckets;
 }
@@ -130,7 +130,7 @@ void ff_hash_table_put_item(struct ff_hash_table *hash_table, uint64_t item_id, 
     }
 
     // Store new item in hash table
-    struct ff_hash_table_node *new_node = (struct ff_hash_table_node *)calloc(1, sizeof(struct ff_hash_table_node));
+    struct ff_hash_table_node *new_node = calloc(1, sizeof(struct ff_hash_table_node));
     new_node->item_id = item_id;
     new_node->value = item;
 
@@ -166,7 +166,7 @@ void ff_hash_table_remove_item(struct ff_hash_table *hash_table, uint64_t item_i
 {
     pthread_mutex_lock(&ff_hash_table_data_mutex);
 
-    union ff_hash_table_bucket **bucket_list = (union ff_hash_table_bucket **)calloc(1, sizeof(union ff_hash_table_bucket *) * hash_table->bucket_levels);
+    union ff_hash_table_bucket **bucket_list = calloc(1, sizeof(union ff_hash_table_bucket *) * hash_table->bucket_levels);
     union ff_hash_table_bucket *buckets = ff_hash_table_get_or_create_bucket(hash_table, item_id, true, bucket_list);
 
     if (buckets == NULL || buckets->nodes == NULL)
@@ -274,7 +274,7 @@ struct ff_hash_table_iterator *ff_hash_table_iterator_init(struct ff_hash_table 
 {
     pthread_mutex_lock(&ff_hash_table_data_mutex);
 
-    struct ff_hash_table_iterator *iterator = (struct ff_hash_table_iterator *)calloc(1, sizeof(struct ff_hash_table_iterator));
+    struct ff_hash_table_iterator *iterator = calloc(1, sizeof(struct ff_hash_table_iterator));
     iterator->hash_table = hash_table;
     iterator->current_node = NULL;
     iterator->started = false;

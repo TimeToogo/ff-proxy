@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <unistd.h>
+#include <sys/types.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
+#include <netdb.h>
 #include <arpa/inet.h>
 #include <stdlib.h>
 #include <string.h>
@@ -224,33 +225,43 @@ uint64_t ff_client_generate_request_id()
 uint8_t ff_client_send_request(struct ff_client_config *config, struct ff_client_packet *packets, uint32_t packets_count)
 {
     uint8_t ret;
+    int err;
     int sockfd;
-    struct sockaddr_in bind_address, to_address;
-
+    struct addrinfo hints;
+    struct addrinfo *res = NULL;
     int sent_length = 0;
     int chunk_length = 0;
-
     char ip_string[INET6_ADDRSTRLEN + 1] = {0};
 
-    to_address.sin_family = AF_INET;
-    to_address.sin_addr = config->ip_address;
-    to_address.sin_port = htons(config->port);
-
-    bind_address.sin_family = AF_INET;
-    bind_address.sin_addr.s_addr = INADDR_ANY;
-    bind_address.sin_port = 0; // ephemeral port
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_DGRAM;
+    err = getaddrinfo(config->ip_address, config->port, &hints, &res);
+    if (err)
+    {
+        ff_log(FF_FATAL, "Failed to perform DNS lookup for host: %s", config->ip_address);
+        goto error;
+    }
 
     ff_log(FF_DEBUG, "Creating socket");
-    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
 
-    if (sockfd == 0)
+    if (sockfd < 0)
     {
         ff_log(FF_FATAL, "Failed to create socket");
         goto error;
     }
 
-    inet_ntop(AF_INET, &config->ip_address, ip_string, sizeof(ip_string));
-    ff_log(FF_INFO, "Sending request to %.16s:%d", ip_string, config->port);
+    if (res->ai_family == AF_INET)
+    {
+        inet_ntop(AF_INET, &((struct sockaddr_in *)res->ai_addr)->sin_addr, ip_string, INET_ADDRSTRLEN);
+    }
+    else
+    {
+        inet_ntop(AF_INET6, &((struct sockaddr_in6 *)res->ai_addr)->sin6_addr, ip_string, INET6_ADDRSTRLEN);
+    }
+    ff_log(FF_INFO, "Sending request to %s%s%s:%s",
+           strchr(ip_string, ':') ? "[" : "", ip_string, strchr(ip_string, ':') ? "]" : "", config->port);
 
     int flag = true;
     if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(flag)) < 0)
@@ -258,18 +269,11 @@ uint8_t ff_client_send_request(struct ff_client_config *config, struct ff_client
         ff_log(FF_WARNING, "Failed to set socket option (errno: %d)", errno);
     }
 
-    ff_log(FF_DEBUG, "Binding to address");
-    if (bind(sockfd, (struct sockaddr *)&bind_address, sizeof(bind_address)))
-    {
-        ff_log(FF_FATAL, "Failed to bind to address (errno: %d)", errno);
-        goto error;
-    }
-
     for (uint16_t i = 0; i < packets_count; i++)
     {
         do
         {
-            chunk_length = sendto(sockfd, packets[i].value + sent_length, packets[i].length, 0, (struct sockaddr *)&to_address, sizeof(to_address));
+            chunk_length = sendto(sockfd, packets[i].value + sent_length, packets[i].length, 0, res->ai_addr, res->ai_addrlen);
 
             if (chunk_length <= 0)
             {
@@ -294,6 +298,11 @@ error:
     goto cleanup;
 
 cleanup:
+    if (res != NULL)
+    {
+        freeaddrinfo(res);
+    }
+
     if (close(sockfd))
     {
         ff_log(FF_WARNING, "Failed to close socket");
