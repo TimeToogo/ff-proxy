@@ -17,7 +17,9 @@ import java.util.concurrent.Flow;
 import java.util.logging.Logger;
 
 import javax.crypto.Cipher;
+import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.GCMParameterSpec;
+import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 
 import java.nio.ByteBuffer;
@@ -165,13 +167,16 @@ public class FfClient {
         this.logger.info("Encrypting payload");
         Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
 
-        var key = this.config.getPreSharedKey().getBytes(UTF8);
-        var paddedKey = new byte[32];
-        System.arraycopy(key, 0, paddedKey, 0, key.length);
-        var keySpec = new SecretKeySpec(paddedKey, "AES");
+        var salt = new byte[16];
+        this.getRandomInstance().nextBytes(salt);
+
+        var spec = new PBEKeySpec(this.config.getPreSharedKey().toCharArray(), salt,
+                this.config.getPbkdf2Iterations(), 256);
+        var skf = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
+        var derivedKey = skf.generateSecret(spec).getEncoded();
+        var keySpec = new SecretKeySpec(derivedKey, "AES");
 
         var iv = new byte[12];
-
         this.getRandomInstance().nextBytes(iv);
 
         var tagLength = 16;
@@ -197,6 +202,15 @@ public class FfClient {
 
         request.getOptions().add(FfRequestOption.builder().type(FfRequestOption.Type.ENCRYPTION_TAG)
                 .length((short) tag.length).value(tag).build());
+
+        request.getOptions()
+                .add(FfRequestOption.builder().type(FfRequestOption.Type.KEY_DERIVE_MODE)
+                        .length((short) 1)
+                        .value(new byte[] {FfRequest.KeyDeriveMode.PBKDF2.getValue()}).build());
+
+        request.getOptions()
+                .add(FfRequestOption.builder().type(FfRequestOption.Type.KEY_DERIVE_SALT)
+                        .length((short) salt.length).value(salt).build());
 
         return cipherText;
     }

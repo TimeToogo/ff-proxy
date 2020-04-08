@@ -96,6 +96,18 @@ public class FfClientTest {
                 .getValue();
 
         assertEquals(16, tag.length);
+
+        var keyDeriveMode = request.getOptions().stream()
+                .filter(i -> i.getType() == FfRequestOption.Type.KEY_DERIVE_MODE).findFirst().get()
+                .getValue();
+
+        assertEquals(FfRequest.KeyDeriveMode.PBKDF2.getValue(), keyDeriveMode[0]);
+
+        var salt = request.getOptions().stream()
+                .filter(i -> i.getType() == FfRequestOption.Type.KEY_DERIVE_SALT).findFirst().get()
+                .getValue();
+
+        assertEquals(16, salt.length);
     }
 
     @Test
@@ -197,6 +209,20 @@ public class FfClientTest {
         // Encryption Tag option length
         assertEquals(16, packet1Buff.getShort());
         // Encryption Tag option value
+        packet1Buff.position(packet1Buff.position() + 16);
+
+        // Key derive mode option
+        assertEquals(FfRequestOption.Type.KEY_DERIVE_MODE.getValue(), packet1Buff.get());
+        // Key derive mode option length
+        assertEquals(1, packet1Buff.getShort());
+        // Key derive mode option value
+        assertEquals(FfRequest.KeyDeriveMode.PBKDF2.getValue(), packet1Buff.get());
+
+        // Key derive salt option
+        assertEquals(FfRequestOption.Type.KEY_DERIVE_SALT.getValue(), packet1Buff.get());
+        // Key derive salt option length
+        assertEquals(16, packet1Buff.getShort());
+        // Key derive salt option value
         packet1Buff.position(packet1Buff.position() + 16);
 
         // EOL option

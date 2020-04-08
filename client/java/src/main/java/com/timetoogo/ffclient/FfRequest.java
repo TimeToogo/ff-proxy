@@ -33,6 +33,20 @@ public class FfRequest {
         }
     }
 
+    public enum KeyDeriveMode {
+        PBKDF2((byte) 1);
+
+        private byte value;
+
+        private KeyDeriveMode(byte value) {
+            this.value = value;
+        }
+
+        public byte getValue() {
+            return value;
+        }
+    }
+
     private Version version;
     private long requestId;
     private List<FfRequestOption> options = new ArrayList<FfRequestOption>();
