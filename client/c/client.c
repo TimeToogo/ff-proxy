@@ -107,7 +107,7 @@ void ff_client_read_payload_from_file(struct ff_request *request, FILE *fd)
     }
 
     request->payload = ff_request_payload_node_alloc();
-    request->payload->value = (uint8_t *)malloc(sizeof(buffer));
+    request->payload->value = malloc(sizeof(buffer));
 
     while ((chunk_length = fread(buffer, 1, sizeof(buffer), fd)) != 0)
     {
@@ -131,7 +131,7 @@ void ff_client_read_payload_from_file(struct ff_request *request, FILE *fd)
 
 struct ff_client_packet *ff_client_packetise_request(struct ff_request *request, uint16_t *packet_count)
 {
-    struct ff_client_packet *packets = (struct ff_client_packet *)calloc(1, sizeof(struct ff_client_packet *) * FF_CLIENT_MAX_PACKETS);
+    struct ff_client_packet *packets = calloc(1, sizeof(struct ff_client_packet *) * FF_CLIENT_MAX_PACKETS);
     uint64_t request_id = ff_client_generate_request_id();
     uint32_t chunk_offset = 0;
     uint16_t bytes_left = request->payload_length;
@@ -140,7 +140,7 @@ struct ff_client_packet *ff_client_packetise_request(struct ff_request *request,
 
     while (bytes_left > 0)
     {
-        uint8_t *buffer = (uint8_t *)calloc(1, FF_CLIENT_MAX_PACKET_LENGTH);
+        uint8_t *buffer = calloc(1, FF_CLIENT_MAX_PACKET_LENGTH);
         uint16_t packet_length = 0;
         struct __raw_ff_request_header *header = (struct __raw_ff_request_header *)buffer;
 
