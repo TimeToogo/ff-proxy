@@ -20,8 +20,8 @@ void test_client_send_request_no_packets()
 
     struct ff_client_config config =
         {
-            .ip_address = {.s_addr = ntohl(INADDR_LOOPBACK)},
-            .port = 8088,
+            .ip_address = "127.0.0.1",
+            .port = "8088",
         };
 
     uint8_t res = ff_client_send_request(&config, packets, sizeof(packets) / sizeof(packets[0]));
@@ -41,8 +41,8 @@ void test_client_send_request_two_packets()
 
     struct ff_client_config config =
         {
-            .ip_address = {.s_addr = ntohl(INADDR_LOOPBACK)},
-            .port = 8088,
+            .ip_address = "127.0.0.1",
+            .port = "8088",
         };
 
     uint8_t res = ff_client_send_request(&config, packets, sizeof(packets) / sizeof(packets[0]));
@@ -243,8 +243,8 @@ void test_client_make_request_http_and_encrypted()
     struct ff_client_config *config = malloc(sizeof(struct ff_client_config));
     config->https = true;
     config->encryption_key.key = (uint8_t *)"test key";
-    config->ip_address.s_addr = ntohl(INADDR_LOOPBACK);
-    config->port = 12345;
+    config->ip_address = "127.0.0.1";
+    config->port = "12345";
     config->logging_level = FF_DEBUG;
 
     int res = ff_client_make_request(config, fd);

@@ -70,8 +70,8 @@ void test_client_parse_args_make_request()
     action = ff_client_parse_arguments(&config, sizeof(args) / sizeof(args[0]), args);
 
     TEST_ASSERT_EQUAL_MESSAGE(FF_CLIENT_ACTION_MAKE_REQUEST, action, "action check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(8080, config.port, "port check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(htonl(INADDR_LOOPBACK), config.ip_address.s_addr, "ip address check failed");
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("8080", config.port, "port check failed");
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("127.0.0.1", config.ip_address, "ip address check failed");
     TEST_ASSERT_EQUAL_MESSAGE(FF_ERROR, config.logging_level, "logging level check failed");
     TEST_ASSERT_EQUAL_MESSAGE(false, config.https, "https check failed");
 }
@@ -85,8 +85,8 @@ void test_client_parse_args_make_request_warning()
     action = ff_client_parse_arguments(&config, sizeof(args) / sizeof(args[0]), args);
 
     TEST_ASSERT_EQUAL_MESSAGE(FF_CLIENT_ACTION_MAKE_REQUEST, action, "action check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(8080, config.port, "port check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(htonl(INADDR_LOOPBACK), config.ip_address.s_addr, "ip address check failed");
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("8080", config.port, "port check failed");
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("127.0.0.1", config.ip_address, "ip address check failed");
     TEST_ASSERT_EQUAL_MESSAGE(FF_WARNING, config.logging_level, "logging level check failed");
 }
 
@@ -99,8 +99,8 @@ void test_client_parse_args_make_request_info()
     action = ff_client_parse_arguments(&config, sizeof(args) / sizeof(args[0]), args);
 
     TEST_ASSERT_EQUAL_MESSAGE(FF_CLIENT_ACTION_MAKE_REQUEST, action, "action check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(8080, config.port, "port check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(htonl(INADDR_LOOPBACK), config.ip_address.s_addr, "ip address check failed");
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("8080", config.port, "port check failed");
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("127.0.0.1", config.ip_address, "ip address check failed");
     TEST_ASSERT_EQUAL_MESSAGE(FF_INFO, config.logging_level, "logging level check failed");
 }
 
@@ -113,8 +113,8 @@ void test_client_parse_args_make_request_debug()
     action = ff_client_parse_arguments(&config, sizeof(args) / sizeof(args[0]), args);
 
     TEST_ASSERT_EQUAL_MESSAGE(FF_CLIENT_ACTION_MAKE_REQUEST, action, "action check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(8080, config.port, "port check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(htonl(INADDR_LOOPBACK), config.ip_address.s_addr, "ip address check failed");
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("8080", config.port, "port check failed");
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("127.0.0.1", config.ip_address, "ip address check failed");
     TEST_ASSERT_EQUAL_MESSAGE(FF_DEBUG, config.logging_level, "logging level check failed");
     TEST_ASSERT_EQUAL_MESSAGE(NULL, config.encryption_key.key, "encryption key check failed");
 }
@@ -128,8 +128,8 @@ void test_client_parse_args_make_request_psk()
     action = ff_client_parse_arguments(&config, sizeof(args) / sizeof(args[0]), args);
 
     TEST_ASSERT_EQUAL_MESSAGE(FF_CLIENT_ACTION_MAKE_REQUEST, action, "action check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(8080, config.port, "port check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(htonl(INADDR_LOOPBACK), config.ip_address.s_addr, "ip address check failed");
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("8080", config.port, "port check failed");
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("127.0.0.1", config.ip_address, "ip address check failed");
     TEST_ASSERT_EQUAL_MESSAGE(FF_ERROR, config.logging_level, "logging level check failed");
     TEST_ASSERT_EQUAL_MESSAGE(args[6], config.encryption_key.key, "encryption key check failed");
 }
@@ -143,8 +143,8 @@ void test_client_parse_args_make_request_https()
     action = ff_client_parse_arguments(&config, sizeof(args) / sizeof(args[0]), args);
 
     TEST_ASSERT_EQUAL_MESSAGE(FF_CLIENT_ACTION_MAKE_REQUEST, action, "action check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(8080, config.port, "port check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(htonl(INADDR_LOOPBACK), config.ip_address.s_addr, "ip address check failed");
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("8080", config.port, "port check failed");
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("127.0.0.1", config.ip_address, "ip address check failed");
     TEST_ASSERT_EQUAL_MESSAGE(FF_ERROR, config.logging_level, "logging level check failed");
     TEST_ASSERT_EQUAL_MESSAGE(true, config.https, "https check failed");
 }
