@@ -116,14 +116,15 @@ void test_client_parse_args_make_request_debug()
     TEST_ASSERT_EQUAL_STRING_MESSAGE("8080", config.port, "port check failed");
     TEST_ASSERT_EQUAL_STRING_MESSAGE("127.0.0.1", config.ip_address, "ip address check failed");
     TEST_ASSERT_EQUAL_MESSAGE(FF_DEBUG, config.logging_level, "logging level check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(NULL, config.encryption_key.key, "encryption key check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(NULL, config.encryption.key, "encryption key check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(1000, config.encryption.pbkdf2_iterations, "pbkdf2 iterations check failed");
 }
 
 void test_client_parse_args_make_request_psk()
 {
     struct ff_client_config config;
     enum ff_client_action action;
-    char *args[] = {"ff_client", "--port", "8080", "--ip-address", "127.0.0.1", "--pre-shared-key", "abc123"};
+    char *args[] = {"ff_client", "--port", "8080", "--ip-address", "127.0.0.1", "--pre-shared-key", "abc123", "--pbkdf2-iterations", "2000"};
 
     action = ff_client_parse_arguments(&config, sizeof(args) / sizeof(args[0]), args);
 
@@ -131,7 +132,8 @@ void test_client_parse_args_make_request_psk()
     TEST_ASSERT_EQUAL_STRING_MESSAGE("8080", config.port, "port check failed");
     TEST_ASSERT_EQUAL_STRING_MESSAGE("127.0.0.1", config.ip_address, "ip address check failed");
     TEST_ASSERT_EQUAL_MESSAGE(FF_ERROR, config.logging_level, "logging level check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(args[6], config.encryption_key.key, "encryption key check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(args[6], config.encryption.key, "encryption key check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(2000, config.encryption.pbkdf2_iterations, "pbkdf2 iterations check failed");
 }
 
 void test_client_parse_args_make_request_https()

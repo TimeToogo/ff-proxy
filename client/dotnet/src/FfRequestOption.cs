@@ -13,7 +13,9 @@ namespace FfClient
             TYPE_ENCRYPTION_MODE = 1,
             TYPE_ENCRYPTION_IV = 2,
             TYPE_ENCRYPTION_TAG = 3,
-            TYPE_HTTPS = 4
+            TYPE_HTTPS = 4,
+            TYPE_KEY_DERIVE_MODE = 5,
+            TYPE_KEY_DERIVE_SALT = 6,
         }
 
         public FfRequestOption.Type OptionType { get; set; }

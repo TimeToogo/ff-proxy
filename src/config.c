@@ -12,6 +12,7 @@
 #define FF_PARSE_ARG_PARSE_PORT 1
 #define FF_PARSE_ARG_PARSE_IP 2
 #define FF_PARSE_ARG_PARSE_PSK 3
+#define FF_PARSE_ARG_PARSE_PBKDF2_ITERATIONS 4
 
 static const char *default_listen_address = "0.0.0.0";
 
@@ -20,7 +21,7 @@ enum ff_action ff_parse_arguments(struct ff_config *config, int argc, char **arg
     enum ff_action action = FF_ACTION_START_PROXY;
     int state = FF_PARSE_ARG_STATE_DEFAULT;
     enum ff_log_type logging_level = FF_ERROR;
-    struct ff_encryption_key encryption_key = {.key = NULL};
+    struct ff_encryption_config encryption_config = {.key = NULL, .pbkdf2_iterations = 1000};
 
     /*
      * Not strictly necessary as config is declared global static,
@@ -61,6 +62,10 @@ enum ff_action ff_parse_arguments(struct ff_config *config, int argc, char **arg
             else if (strcasecmp(arg, "--pre-shared-key") == 0)
             {
                 state = FF_PARSE_ARG_PARSE_PSK;
+            }
+            else if (strcasecmp(arg, "--pbkdf2-iterations") == 0)
+            {
+                state = FF_PARSE_ARG_PARSE_PBKDF2_ITERATIONS;
             }
             else if (strcasecmp(arg, "-vvv") == 0)
             {
@@ -125,7 +130,20 @@ enum ff_action ff_parse_arguments(struct ff_config *config, int argc, char **arg
         }
 
         case FF_PARSE_ARG_PARSE_PSK:
-            encryption_key.key = (uint8_t *)arg;
+            encryption_config.key = (uint8_t *)arg;
+            state = FF_PARSE_ARG_STATE_DEFAULT;
+            break;
+
+        case FF_PARSE_ARG_PARSE_PBKDF2_ITERATIONS:
+            encryption_config.pbkdf2_iterations = atoi(arg);
+            
+            if (encryption_config.pbkdf2_iterations <= 0)
+            {
+                fprintf(stderr, "Invalid --pbkdf2-iterations argument: %s\n\n", arg);
+                action = FF_ACTION_INVALID_ARGS;
+                goto done;
+            }
+
             state = FF_PARSE_ARG_STATE_DEFAULT;
             break;
 
@@ -149,7 +167,7 @@ enum ff_action ff_parse_arguments(struct ff_config *config, int argc, char **arg
         {
             config->ip_address = default_listen_address;
         }
-        config->encryption_key = encryption_key;
+        config->encryption = encryption_config;
         config->logging_level = logging_level;
     }
 

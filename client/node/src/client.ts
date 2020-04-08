@@ -5,13 +5,15 @@ import {
   FfRequest,
   FfRequestOptionType,
   FfEncryptionMode,
-  FfRequestVersion
+  FfRequestVersion,
+  FfKeyDeriveMode,
 } from "./request";
 
 export interface FfClientOptions {
   ipAddress: string;
   port: number;
   preSharedKey?: string;
+  pbkdf2Iterations?: number;
 }
 
 export interface FfRequestOptions {
@@ -24,6 +26,8 @@ interface EncryptionResult {
   iv: Uint8Array;
   tag: Uint8Array;
   ciphertext: Uint8Array;
+  keyDeriveMode: FfKeyDeriveMode;
+  salt: Uint8Array;
 }
 
 interface Packet {
@@ -49,11 +53,11 @@ export class FfClient {
     debug(`Creating UDP socket`);
     const socket = dgram.createSocket({
       type: "udp4",
-      reuseAddr: true
+      reuseAddr: true,
     });
 
     debug(`Binding socket`);
-    await new Promise(resolve => socket.bind(undefined, undefined, resolve));
+    await new Promise((resolve) => socket.bind(undefined, undefined, resolve));
 
     let sent = 0;
 
@@ -63,7 +67,7 @@ export class FfClient {
           packet.payload,
           this.config.port,
           this.config.ipAddress,
-          err => {
+          (err) => {
             err ? reject(err) : resolve();
           }
         )
@@ -73,7 +77,7 @@ export class FfClient {
 
     debug(`Sent ${sent} bytes to ${this.config.ipAddress}:${this.config.port}`);
 
-    await new Promise(resolve => socket.close(resolve));
+    await new Promise((resolve) => socket.close(resolve));
     debug(`Socket closed`);
   };
 
@@ -87,14 +91,14 @@ export class FfClient {
           ? Buffer.from(options.request, "utf-8")
           : options.request
       ),
-      options: []
+      options: [],
     };
 
     if (options.https) {
       request.options.push({
         type: FfRequestOptionType.HTTPS,
         length: 1,
-        value: Buffer.of(1)
+        value: Buffer.of(1),
       });
     }
 
@@ -105,24 +109,34 @@ export class FfClient {
       request.options.push({
         type: FfRequestOptionType.ENCRYPTION_MODE,
         length: 1,
-        value: Buffer.of(FfEncryptionMode.AES_256_GCM)
+        value: Buffer.of(encryptionResult.mode),
       });
       request.options.push({
         type: FfRequestOptionType.ENCRYPTION_IV,
         length: encryptionResult.iv.length,
-        value: encryptionResult.iv
+        value: encryptionResult.iv,
       });
       request.options.push({
         type: FfRequestOptionType.ENCRYPTION_TAG,
         length: encryptionResult.tag.length,
-        value: encryptionResult.tag
+        value: encryptionResult.tag,
+      });
+      request.options.push({
+        type: FfRequestOptionType.KEY_DERIVE_MODE,
+        length: 1,
+        value: Buffer.of(encryptionResult.keyDeriveMode),
+      });
+      request.options.push({
+        type: FfRequestOptionType.KEY_DERIVE_SALT,
+        length: encryptionResult.salt.length,
+        value: encryptionResult.salt,
       });
     }
 
     request.options.push({
       type: FfRequestOptionType.EOL,
       length: 0,
-      value: Buffer.alloc(0)
+      value: Buffer.alloc(0),
     });
 
     const packets: Packet[] = this._packetiseRequest(request);
@@ -140,11 +154,27 @@ export class FfClient {
       throw new Error(`Cannot encrypt payload without pre-shared key`);
     }
 
-    const iv = Uint8Array.from(crypto.randomBytes(12));
-    const paddedKey = Buffer.alloc(32, 0, "utf-8");
-    paddedKey.set(Buffer.from(this.config.preSharedKey, "utf-8"));
+    const salt = Uint8Array.from(crypto.randomBytes(16));
+    const derivedKey = await new Promise<Buffer>((resolve, reject) =>
+      crypto.pbkdf2(
+        this.config.preSharedKey!,
+        salt,
+        this.config.pbkdf2Iterations || 1000,
+        256 / 8,
+        "SHA256",
+        (err, key) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(key);
+          }
+        }
+      )
+    );
 
-    const cipher = crypto.createCipheriv("aes-256-gcm", paddedKey, iv);
+    const iv = Uint8Array.from(crypto.randomBytes(12));
+
+    const cipher = crypto.createCipheriv("aes-256-gcm", derivedKey, iv);
 
     const ciphertext = Uint8Array.from(
       Buffer.concat([cipher.update(payload), cipher.final()])
@@ -159,7 +189,9 @@ export class FfClient {
       mode: FfEncryptionMode.AES_256_GCM,
       iv,
       tag,
-      ciphertext
+      ciphertext,
+      keyDeriveMode: FfKeyDeriveMode.PBKDF2,
+      salt,
     };
   };
 
@@ -206,8 +238,8 @@ export class FfClient {
               {
                 type: FfRequestOptionType.EOL,
                 length: 0,
-                value: new Uint8Array(0)
-              }
+                value: new Uint8Array(0),
+              },
             ];
 
       for (const option of requestOptions) {
@@ -237,7 +269,7 @@ export class FfClient {
 
       packets.push({
         payload: packetBuff,
-        length: ptr
+        length: ptr,
       });
       chunkOffset += chunkLength;
       bytesLeft -= chunkLength;

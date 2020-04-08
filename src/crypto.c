@@ -11,7 +11,7 @@
 #include "logging.h"
 #include "alloc.h"
 
-void ff_decrypt_request(struct ff_request *request, struct ff_encryption_key *key)
+void ff_decrypt_request(struct ff_request *request, struct ff_encryption_config *config)
 {
     request->state = FF_REQUEST_STATE_DECRYPTING;
 
@@ -21,7 +21,7 @@ void ff_decrypt_request(struct ff_request *request, struct ff_encryption_key *ke
     uint8_t *tag = NULL;
     uint16_t tag_len = 0;
 
-    bool has_key = key != NULL && key->key != NULL;
+    bool has_key = config != NULL && config->key != NULL;
 
     for (uint8_t i = 0; i < request->options_length; i++)
     {
@@ -37,13 +37,13 @@ void ff_decrypt_request(struct ff_request *request, struct ff_encryption_key *ke
         case FF_REQUEST_OPTION_TYPE_ENCRYPTION_IV:
             iv_len = request->options[i]->length;
             iv = malloc(iv_len);
-            memcpy(iv, request->options[i]->value, iv_len * sizeof(uint8_t));
+            memcpy(iv, request->options[i]->value, iv_len);
             break;
 
         case FF_REQUEST_OPTION_TYPE_ENCRYPTION_TAG:
             tag_len = request->options[i]->length;
             tag = malloc(tag_len);
-            memcpy(tag, request->options[i]->value, tag_len * sizeof(uint8_t));
+            memcpy(tag, request->options[i]->value, tag_len);
             break;
 
         default:
@@ -85,7 +85,7 @@ void ff_decrypt_request(struct ff_request *request, struct ff_encryption_key *ke
     switch (encryption_mode)
     {
     case FF_CRYPTO_MODE_AES_256_GCM:
-        if (ff_decrypt_request_aes_256_gcm(request, key, iv, iv_len, tag, tag_len))
+        if (ff_decrypt_request_aes_256_gcm(request, config, iv, iv_len, tag, tag_len))
         {
             goto done;
         }
@@ -95,7 +95,7 @@ void ff_decrypt_request(struct ff_request *request, struct ff_encryption_key *ke
         }
 
     default:
-        ff_log(FF_WARNING, "Encountered request with unknown encryption mode: %d", encryption_mode);
+        ff_log(FF_WARNING, "Encountered request with unknown encryption mode: %u", encryption_mode);
         goto error;
     }
 
@@ -123,23 +123,27 @@ cleanup:
 
 bool ff_decrypt_request_aes_256_gcm(
     struct ff_request *request,
-    struct ff_encryption_key *key,
+    struct ff_encryption_config *config,
     uint8_t *iv,
     uint16_t iv_len,
     uint8_t *tag,
     uint16_t tag_len)
 {
-    EVP_CIPHER_CTX *ctx;
+    EVP_CIPHER_CTX *ctx = NULL;
     int len;
     bool ret_val;
 
-    uint8_t *plaintext_buff = malloc(request->payload_length * sizeof(uint8_t));
+    uint8_t *plaintext_buff = malloc(request->payload_length);
     int plaintext_len = 0;
     int ret;
     struct ff_request_payload_node *payload_chunk = request->payload;
 
-    unsigned char padded_key[32] = {0};
-    memcpy(padded_key, key->key, strlen((char *)key->key));
+    struct ff_derived_key *derived_key = ff_derived_key_alloc(32);
+
+    if (!ff_derive_key(request, config, derived_key))
+    {
+        goto error;
+    }
 
     if (!(ctx = EVP_CIPHER_CTX_new()))
     {
@@ -159,7 +163,7 @@ bool ff_decrypt_request_aes_256_gcm(
         goto error;
     }
 
-    if (!EVP_DecryptInit_ex(ctx, NULL, NULL, padded_key, iv))
+    if (!EVP_DecryptInit_ex(ctx, NULL, NULL, derived_key->key, iv))
     {
         ff_log(FF_ERROR, "Failed to init OpenSSL cipher with key and IV");
         goto error;
@@ -225,7 +229,137 @@ done:
 
 cleanup:
     EVP_CIPHER_CTX_free(ctx);
+    ff_derived_key_free(derived_key);
+
     return ret_val;
+}
+
+struct ff_derived_key *ff_derived_key_alloc(uint16_t length)
+{
+    struct ff_derived_key *key = malloc(sizeof(struct ff_derived_key));
+    key->key = calloc(1, length);
+    key->length = length;
+
+    return key;
+}
+
+void ff_derived_key_free(struct ff_derived_key *key)
+{
+    if (key == NULL)
+    {
+        return;
+    }
+
+    if (key->key != NULL)
+    {
+        FREE(key->key);
+    }
+
+    FREE(key);
+}
+
+bool ff_derive_key(
+    struct ff_request *request,
+    struct ff_encryption_config *config,
+    struct ff_derived_key *out_key)
+{
+    uint8_t key_derivation_mode = 0;
+    uint8_t *salt = NULL;
+    uint16_t salt_length = 0;
+    bool ret_val;
+
+    for (uint8_t i = 0; i < request->options_length; i++)
+    {
+        switch (request->options[i]->type)
+        {
+        case FF_REQUEST_OPTION_TYPE_KEY_DERIVE_MODE:
+            if (request->options[i]->length == 1)
+            {
+                key_derivation_mode = (uint8_t)*request->options[i]->value;
+            };
+            break;
+
+        case FF_REQUEST_OPTION_TYPE_KEY_DERIVE_SALT:
+            salt_length = request->options[i]->length;
+            salt = malloc(salt_length);
+            memcpy(salt, request->options[i]->value, salt_length);
+            break;
+
+        default:
+            break;
+        }
+    }
+
+    if (key_derivation_mode == 0)
+    {
+        ff_log(FF_ERROR, "Failed derive encryption key, incoming request does not specify mode");
+        goto error;
+    }
+
+    if (salt == NULL || salt_length == 0)
+    {
+        ff_log(FF_ERROR, "Failed derive encryption key, incoming request does not specify salt");
+        goto error;
+    }
+
+    switch (key_derivation_mode)
+    {
+    case FF_KEY_DERIVE_MODE_PBKDF2:
+        if (!ff_derive_key_pbkdf2(config, salt, salt_length, out_key))
+        {
+            goto error;
+        }
+        break;
+
+    default:
+        ff_log(FF_WARNING, "Encountered request with unknown key derivation mode: %u", key_derivation_mode);
+        goto error;
+    }
+
+    goto done;
+
+error:
+    ret_val = false;
+    goto cleanup;
+
+done:
+    ret_val = true;
+    ff_log(FF_DEBUG, "Successfully derived encryption key");
+    goto cleanup;
+
+cleanup:
+    if (salt != NULL)
+    {
+        FREE(salt);
+    }
+
+    return ret_val;
+}
+
+bool ff_derive_key_pbkdf2(
+    struct ff_encryption_config *config,
+    uint8_t *salt,
+    uint16_t salt_length,
+    struct ff_derived_key *out_key)
+
+{
+    int res = PKCS5_PBKDF2_HMAC(
+        (char *)config->key,
+        strlen((char *)config->key),
+        salt, salt_length,
+        config->pbkdf2_iterations,
+        EVP_sha256(),
+        out_key->length,
+        out_key->key);
+
+    bool success = res == 1;
+
+    if (!success)
+    {
+        ff_log(FF_ERROR, "Failed to dervice key using PBKDF2 algorithm");
+    }
+
+    return success;
 }
 
 void ff_init_openssl()

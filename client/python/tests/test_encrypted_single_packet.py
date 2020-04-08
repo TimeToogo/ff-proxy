@@ -19,7 +19,7 @@ class TestFfClientEncryptedSingePacket(unittest.TestCase):
         packet1_len = packets[0].length
         ptr = 0
 
-        self.assertEqual(126, packet1_len)
+        self.assertEqual(149, packet1_len)
 
         # Request version
         self.assertEqual(FfRequest.Version.V1,
@@ -108,6 +108,29 @@ class TestFfClientEncryptedSingePacket(unittest.TestCase):
         ptr += 2
 
         # Encryption Tag option value
+        ptr += 16
+
+        # Key Derive Mode option type
+        self.assertEqual(FfRequest.Option.Type.KEY_DERIVE_MODE, packet1_buff[ptr])
+        ptr += 1
+
+        # Key Derive Mode option length
+        self.assertEqual(1, packet1_buff[ptr] << 16 | packet1_buff[ptr + 1])
+        ptr += 2
+
+        # Key Derive Mode option value
+        self.assertEqual(FfRequest.KeyDeriveMode.PBKDF2, packet1_buff[ptr])
+        ptr += 1
+
+        # Key Derive Salt option type
+        self.assertEqual(FfRequest.Option.Type.KEY_DERIVE_SALT, packet1_buff[ptr])
+        ptr += 1
+
+        # Key Derive Salt option length
+        self.assertEqual(16, packet1_buff[ptr] << 16 | packet1_buff[ptr + 1])
+        ptr += 2
+
+        # Key Derive Salt option value
         ptr += 16
 
         # EOL option type

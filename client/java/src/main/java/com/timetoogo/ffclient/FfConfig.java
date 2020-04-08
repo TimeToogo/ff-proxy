@@ -7,6 +7,7 @@ public class FfConfig {
     private InetAddress ipAddress;
     private int port;
     private String preSharedKey;
+    private int pbkdf2Iterations = 1000;
 
     private FfConfig() {
 
@@ -27,6 +28,11 @@ public class FfConfig {
 
         public Builder preSharedKey(String preSharedKey) {
             this.config.preSharedKey = preSharedKey;
+            return this;
+        }
+
+        public Builder pbkdf2Iterations(int pbkdf2Iterations) {
+            this.config.pbkdf2Iterations = pbkdf2Iterations;
             return this;
         }
 
@@ -62,5 +68,9 @@ public class FfConfig {
 
     public int getPort() {
         return port;
+    }
+
+    public int getPbkdf2Iterations() {
+      return pbkdf2Iterations;
     }
 }

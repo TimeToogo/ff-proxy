@@ -242,7 +242,8 @@ void test_client_make_request_http_and_encrypted()
 
     struct ff_client_config *config = malloc(sizeof(struct ff_client_config));
     config->https = true;
-    config->encryption_key.key = (uint8_t *)"test key";
+    config->encryption.key = (uint8_t *)"test key";
+    config->encryption.pbkdf2_iterations = 1000;
     config->ip_address = "127.0.0.1";
     config->port = "12345";
     config->logging_level = FF_DEBUG;

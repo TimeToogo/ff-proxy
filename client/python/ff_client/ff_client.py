@@ -6,6 +6,8 @@ import struct
 import logging
 from Cryptodome.Random import get_random_bytes, random
 from Cryptodome.Cipher import AES
+from Cryptodome.Protocol.KDF import PBKDF2
+from Cryptodome.Hash import SHA256
 from typing import List
 
 
@@ -70,10 +72,15 @@ class FfClient:
             raise RuntimeError(
                 'Cannot encrypt payload without pre_shared_key set')
 
+        salt = get_random_bytes(16)
+        derived_key = PBKDF2(self.config.pre_shared_key, salt, 
+                             dkLen=32,
+                             count=self.config.pbkdf2_iterations, 
+                             hmac_hash_module=SHA256)
+
         iv = get_random_bytes(12)
-        padded_key = self.config.pre_shared_key.encode(
-            'utf8').ljust(32, b'\0')
-        cipher = AES.new(key=padded_key, mode=AES.MODE_GCM,
+
+        cipher = AES.new(key=derived_key, mode=AES.MODE_GCM,
                          nonce=iv, mac_len=16)
 
         ciphertext, tag = cipher.encrypt_and_digest(
@@ -95,6 +102,18 @@ class FfClient:
             FfRequest.Option.Type.ENCRYPTION_TAG,
             len(tag),
             bytearray(tag)
+        ))
+
+        request.options.append(FfRequest.Option(
+            FfRequest.Option.Type.KEY_DERIVE_MODE,
+            1,
+            bytearray([FfRequest.KeyDeriveMode.PBKDF2])
+        ))
+
+        request.options.append(FfRequest.Option(
+            FfRequest.Option.Type.KEY_DERIVE_SALT,
+            len(salt),
+            bytearray(salt)
         ))
 
         self.logger.debug('Encrypted request into %d bytes' % len(ciphertext))

@@ -22,10 +22,11 @@ Or it can be [installed locally from the source](/docs/installing-from-source.md
 
 #### Arguments
 
-| Argument                 | Required | Description                                          |
-| ------------------------ | -------- | ---------------------------------------------------- |
-| `--ip-address <ip>`      | Yes      | The IP address of the FF proxy                       |
-| `--port <port>`          | Yes      | The listening port of the FF proxy                   |
-| `--pre-shared-key <key>` | No       | The pre-shared key used to encrypt outgoing requests |
-| `--https`                | No       | Tell FF proxy to forwards the request over HTTPS     |
-| `-v`, `-vv`, `-vvv`      | No       | Enable verbose logging                               |
+| Argument                    | Required | Description                                          |
+| --------------------------- | -------- | ---------------------------------------------------- |
+| `--ip-address <ip>`         | Yes      | The IP address of the FF proxy                       |
+| `--port <port>`             | Yes      | The listening port of the FF proxy                   |
+| `--pre-shared-key <key>`    | No       | The pre-shared key used to encrypt outgoing requests |
+| `--pbkdf2-iterations <num>` | No       | The number of PBKDF2 iterations (default: 1000)      |
+| `--https`                   | No       | Tell FF proxy to forwards the request over HTTPS     |
+| `-v`, `-vv`, `-vvv`         | No       | Enable verbose logging                               |
