@@ -236,8 +236,8 @@ cleanup:
 
 struct ff_derived_key *ff_derived_key_alloc(uint16_t length)
 {
-    struct ff_derived_key *key = (struct ff_derived_key *)malloc(sizeof(struct ff_derived_key));
-    key->key = (uint8_t *)calloc(1, length);
+    struct ff_derived_key *key = malloc(sizeof(struct ff_derived_key));
+    key->key = calloc(1, length);
     key->length = length;
 
     return key;
@@ -281,7 +281,7 @@ bool ff_derive_key(
 
         case FF_REQUEST_OPTION_TYPE_KEY_DERIVE_SALT:
             salt_length = request->options[i]->length;
-            salt = (uint8_t *)malloc(salt_length);
+            salt = malloc(salt_length);
             memcpy(salt, request->options[i]->value, salt_length);
             break;
 
