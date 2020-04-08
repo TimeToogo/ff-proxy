@@ -1,7 +1,5 @@
 #include <stdio.h>
 #include <stdbool.h>
-#include <stdlib.h>
-#include <netinet/in.h>
 #include "../../src/config.h"
 #include "logging.h"
 #include "crypto.h"
@@ -12,8 +10,8 @@
 
 struct ff_client_config
 {
-    uint16_t port;
-    struct in_addr ip_address;
+    const char *port;
+    const char *ip_address;
     bool https;
     struct ff_encryption_key encryption_key;
     enum ff_log_type logging_level;

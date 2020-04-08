@@ -1,8 +1,9 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
-#include <arpa/inet.h>
+#include <strings.h>
 #include "main.h"
 #include "config.h"
 
@@ -11,18 +12,21 @@
 #define FF_CLIENT_PARSE_ARG_PARSE_IP 2
 #define FF_CLIENT_PARSE_ARG_PARSE_PSK 3
 
+static const char *default_ip_address = "127.0.0.1";
+
 enum ff_client_action ff_client_parse_arguments(struct ff_client_config *config, int argc, char **argv)
 {
     enum ff_client_action action = FF_CLIENT_ACTION_MAKE_REQUEST;
-
     int state = FF_CLIENT_PARSE_ARG_STATE_DEFAULT;
-
-    uint16_t port = 0;
-    struct in_addr ip_address = {.s_addr = htonl(INADDR_LOOPBACK)};
     enum ff_log_type logging_level = FF_ERROR;
     struct ff_encryption_key encryption_key = {.key = NULL};
-    bool https = false;
-    bool parsed_port = false;
+
+    /*
+     * Not strictly necessary as config is declared global static,
+     * but the tests repeatedly call this function, so ensure it's
+     * cleared each time for them.
+     */
+    memset(config, 0, sizeof(struct ff_config));
 
     for (int i = 1; i < argc; i++)
     {
@@ -56,7 +60,7 @@ enum ff_client_action ff_client_parse_arguments(struct ff_client_config *config,
             }
             else if (strcasecmp(arg, "--https") == 0)
             {
-                https = true;
+                config->https = true;
             }
             else if (strcasecmp(arg, "-vvv") == 0)
             {
@@ -79,27 +83,23 @@ enum ff_client_action ff_client_parse_arguments(struct ff_client_config *config,
             break;
 
         case FF_CLIENT_PARSE_ARG_PARSE_PORT:
-            sscanf(arg, "%hu", &port);
+        {
+            int port = atoi(arg);
 
-            if (port == 0)
+            if (port <= 0 || port > UINT16_MAX)
             {
                 fprintf(stderr, "Invalid --port argument: %s\n\n", arg);
                 action = FF_CLIENT_ACTION_INVALID_ARGS;
                 goto done;
             }
 
-            parsed_port = true;
+            config->port = arg;
             state = FF_CLIENT_PARSE_ARG_STATE_DEFAULT;
             break;
+       }
 
         case FF_CLIENT_PARSE_ARG_PARSE_IP:
-            if (inet_pton(AF_INET, arg, &ip_address) != 1)
-            {
-                fprintf(stderr, "Invalid --ip-address argument: %s\n\n", arg);
-                action = FF_CLIENT_ACTION_INVALID_ARGS;
-                goto done;
-            }
-
+            config->ip_address = arg;
             state = FF_CLIENT_PARSE_ARG_STATE_DEFAULT;
             break;
 
@@ -117,17 +117,20 @@ enum ff_client_action ff_client_parse_arguments(struct ff_client_config *config,
 
     if (action == FF_CLIENT_ACTION_MAKE_REQUEST)
     {
-        if (!parsed_port)
+        if (!config->port)
         {
             fputs("--port is required\n\n", stderr);
             action = FF_CLIENT_ACTION_INVALID_ARGS;
+            goto done;
         }
 
-        config->port = port;
-        config->ip_address = ip_address;
+        if (!config->ip_address)
+        {
+            config->ip_address = default_ip_address;
+        }
+
         config->encryption_key = encryption_key;
         config->logging_level = logging_level;
-        config->https = https;
     }
 
 done:
@@ -140,7 +143,7 @@ void ff_client_print_usage(FILE *fd)
 ff version " FF_VERSION "\n\n\
 make request: ff_client \n\
     --port dest_port_num\n\
-    [--ip-address dest_ip_address] # format: 0.0.0.0 \n\
+    [--ip-address dest_server] # format: IPv[46] address or hostname \n\
     [--pre-shared-key pre_shared_key] # encrypt the payload \n\
     [--https]\n\
     -v[vv] \n\
