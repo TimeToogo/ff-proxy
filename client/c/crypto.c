@@ -83,7 +83,7 @@ bool ff_client_encrypt_request_aes_256_gcm(
     int len;
     bool ret_val;
 
-    uint8_t *ciphertext_buff = (uint8_t *)malloc(request->payload_length * sizeof(uint8_t));
+    uint8_t *ciphertext_buff = malloc(request->payload_length * sizeof(uint8_t));
     int ciphertext_len = 0;
     struct ff_request_payload_node *payload_chunk = request->payload;
 
@@ -91,7 +91,7 @@ bool ff_client_encrypt_request_aes_256_gcm(
     memcpy(padded_key, key->key, strlen((char *)key->key));
 
     *iv_len = 12;
-    *iv = (uint8_t *)calloc(1, *iv_len);
+    *iv = calloc(1, *iv_len);
 
     if (!RAND_bytes(*iv, *iv_len))
     {
@@ -143,7 +143,7 @@ bool ff_client_encrypt_request_aes_256_gcm(
 
     ciphertext_len += len;
     *tag_len = 16;
-    *tag = (uint8_t *)calloc(1, 16);
+    *tag = calloc(1, 16);
 
     if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, *tag_len, *tag))
     {
