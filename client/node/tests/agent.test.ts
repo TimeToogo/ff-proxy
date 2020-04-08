@@ -6,7 +6,7 @@ describe("FfClientAgent", () => {
     const agent = new FfClientAgent({
       ipAddress: "mock",
       port: 0,
-      mockResponse: 200
+      mockResponse: 200,
     });
 
     const socket: TcpToFfSocket = (await agent.callback(
@@ -24,7 +24,7 @@ describe("FfClientAgent", () => {
     const agent = new FfClientAgent({
       ipAddress: "mock",
       port: 0,
-      mockResponse: 200
+      mockResponse: 200,
     });
 
     const socket: TcpToFfSocket = (await agent.callback(
@@ -49,10 +49,10 @@ describe("FfClientAgent", () => {
       method: "GET",
       path: "/",
       host: "www.google.com",
-      agent
+      agent,
     });
 
-    await new Promise(resolve => request.end(resolve));
+    await new Promise((resolve) => request.end(resolve));
   });
 
   it("can send large HTTP request", async () => {
@@ -61,17 +61,17 @@ describe("FfClientAgent", () => {
     const agent = new FfClientAgent({
       ipAddress: "127.0.0.1",
       port: 8080,
-      mockResponse: 200
+      mockResponse: 200,
     });
 
     const request = http.request({
       method: "POST",
       path: "/",
       host: "www.google.com",
-      agent
+      agent,
     });
 
-    await new Promise(resolve => request.write(largePayload, resolve));
+    await new Promise((resolve) => request.write(largePayload, resolve));
     request.end();
 
     expect(request.finished).toBe(true);
