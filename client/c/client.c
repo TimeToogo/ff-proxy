@@ -226,7 +226,7 @@ uint8_t ff_client_send_request(struct ff_client_config *config, struct ff_client
 {
     uint8_t ret;
     int err;
-    int sockfd;
+    int sockfd = 0;
     struct addrinfo hints;
     struct addrinfo *res = NULL;
     int sent_length = 0;

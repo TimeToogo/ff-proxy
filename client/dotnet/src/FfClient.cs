@@ -8,7 +8,7 @@ using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text;
 using System.Linq;
-using System.Net.Http.Headers;
+using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 
 namespace FfClient
 {
@@ -176,18 +176,25 @@ namespace FfClient
 
         internal byte[] EncryptHttpMessage(byte[] httpMessage, FfRequest request)
         {
-            Debug.WriteLine("Encrypting HTTP message using AES-256-GCM");
+            Debug.WriteLine("Encrypting HTTP message using AES-256-GCM with PBKDF2");
+
+            var salt = new byte[16];
+            this.rng.GetBytes(salt);
+            var derivedKey = KeyDerivation.Pbkdf2(
+                password: this.config.PreSharedKey,
+                salt: salt,
+                prf: KeyDerivationPrf.HMACSHA256,
+                iterationCount: this.config.Pbkdf2Iterations,
+                numBytesRequested: 256 / 8
+            );
 
             var iv = new byte[12];
             this.rng.GetBytes(iv);
             var tag = new byte[16];
             var cipherText = new byte[httpMessage.Length];
 
-            var paddedKey = new byte[32];
-            var keyBytes = Encoding.UTF8.GetBytes(this.config.PreSharedKey);
-            Buffer.BlockCopy(keyBytes, 0, paddedKey, 0, keyBytes.Length);
 
-            using (var aesGcm = new AesGcm(paddedKey))
+            using (var aesGcm = new AesGcm(derivedKey))
             {
                 aesGcm.Encrypt(iv, httpMessage, cipherText, tag);
             }
@@ -208,6 +215,18 @@ namespace FfClient
             {
                 OptionType = FfRequestOption.Type.TYPE_ENCRYPTION_TAG,
                 Value = tag
+            });
+
+            request.Options.Add(new FfRequestOption()
+            {
+                OptionType = FfRequestOption.Type.TYPE_KEY_DERIVE_MODE,
+                Value = new byte[] { (byte)FfKeyDeriveMode.PBKDF2 }
+            });
+
+            request.Options.Add(new FfRequestOption()
+            {
+                OptionType = FfRequestOption.Type.TYPE_KEY_DERIVE_SALT,
+                Value = salt
             });
 
             return cipherText;

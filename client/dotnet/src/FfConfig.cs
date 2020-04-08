@@ -10,6 +10,7 @@ namespace FfClient
         public IPAddress IPAddress { get; set; }
         public ushort Port { get; set; }
         public string PreSharedKey { get; set; }
+        public int Pbkdf2Iterations { get; set; } = 1000;
 
         internal void Validate()
         {

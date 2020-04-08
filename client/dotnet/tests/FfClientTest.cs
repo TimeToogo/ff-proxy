@@ -209,7 +209,24 @@ namespace FfClient.Tests
             Assert.Equal(16, (ushort)IPAddress.NetworkToHostOrder((short)BitConverter.ToUInt16(packet, i)));
             i += 2;
             // Option value
-            Assert.NotEqual(new byte[26], packet.Skip(i).Take(12).ToArray());
+            Assert.NotEqual(new byte[16], packet.Skip(i).Take(16).ToArray());
+            i += 16;
+
+            // Key derive mode option
+            Assert.Equal((byte)FfRequestOption.Type.TYPE_KEY_DERIVE_MODE, packet[i++]);
+            // Option length (uint16)
+            Assert.Equal(1, (ushort)IPAddress.NetworkToHostOrder((short)BitConverter.ToUInt16(packet, i)));
+            i += 2;
+            // Option value
+            Assert.Equal((byte)FfKeyDeriveMode.PBKDF2, packet[i++]);
+
+            // Key derive salt option
+            Assert.Equal((byte)FfRequestOption.Type.TYPE_KEY_DERIVE_SALT, packet[i++]);
+            // Option length (uint16)
+            Assert.Equal(16, (ushort)IPAddress.NetworkToHostOrder((short)BitConverter.ToUInt16(packet, i)));
+            i += 2;
+            // Option value
+            Assert.NotEqual(new byte[16], packet.Skip(i).Take(16).ToArray());
             i += 16;
 
             // EOL option
