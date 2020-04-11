@@ -39,7 +39,7 @@ On the other hand, we have the UDP protocol. UDP is very simple comparatively an
 
 UDP lets us avoid the overhead of the network by removing any need for a handshake process before data can be exchanged. However HTTP web servers typically do not listen for traffic on UDP ports hence is not a viable solution on it's own.
 
-FF Proxy makes it possible to send HTTP requests over UDP by acting as the middle man. Listening for HTTP requests over UDP and forwarding the the requests to the destination web server over TCP.
+FF Proxy makes it possible to send HTTP requests over UDP by acting as the middle man. Listening for HTTP requests over UDP and forwarding the requests to the destination web server over TCP.
 
 ![FF Proxy](https://www.lucidchart.com/publicSegments/view/1a17a71b-13fd-467d-8380-ccc6d0622514/image.png)
 
