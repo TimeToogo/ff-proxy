@@ -3,7 +3,7 @@
 # make test		# run tests
 # make clean	# remove all binaries and objects
 
-.PHONY: build build_server build_client test test_build
+.PHONY: build_check build build_server build_client test test_build
 
 LD=gcc
 CC=gcc
@@ -18,6 +18,33 @@ CC_FLAGS=-Wall -Wextra -std=c99 -D_GNU_SOURCE $(OPTIMISE_FLAGS)
 LD_FLAGS=
 SERVER_LIBS=-lm -lssl -lcrypto -lpthread
 CLIENT_LIBS=-lssl -lcrypto
+
+ifeq ($(OPENSSL_SKIP_HOST_VALIDATION), 1)
+        CC_FLAGS += -DOPENSSL_SKIP_HOST_VALIDATION
+        OPENSSL_VER_OK = 1
+else
+        OPENSSL_VER	:= $(shell openssl version -v | cut -d " " -f 2)
+        OPENSSL_MAJOR	:= $(shell echo $(OPENSSL_VER) | cut -d . -f 1)
+        OPENSSL_MINOR	:= $(shell echo $(OPENSSL_VER) | cut -d . -f 2)
+        OPENSSL_FIX	:= $(shell echo $(OPENSSL_VER) | cut -d . -f 3)
+        OPENSSL_VER_OK	:= $(shell test $(OPENSSL_MAJOR) -ge 1 && test $(OPENSSL_MINOR) -ge 1 -o $(OPENSSL_FIX) \> 1z && echo 1)
+endif
+
+build_check:
+# OpenSSL < 1.0.2 doesn't have direct support for hostname validation
+ifneq "$(OPENSSL_VER_OK)" "1"
+	@echo "***"
+	@echo "*** OpenSSL too old (< 1.0.2)"
+	@echo "***"
+	@echo "*** If you are OK with skipping hostname validation then \
+	please build with"
+	@echo "***"
+	@echo "*** make OPENSSL_SKIP_HOST_VALIDATION=1"
+	@echo "***"
+	@false
+else
+	$(MAKE) build
+endif
 
 build: build_server build_client
 
