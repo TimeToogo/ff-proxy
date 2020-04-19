@@ -14,7 +14,7 @@
 #define FF_PARSE_ARG_PARSE_PSK 3
 #define FF_PARSE_ARG_PARSE_PBKDF2_ITERATIONS 4
 
-static const char *default_listen_address = "0.0.0.0";
+static char *default_listen_address = "0.0.0.0";
 
 enum ff_action ff_parse_arguments(struct ff_config *config, int argc, char **argv)
 {

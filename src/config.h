@@ -9,8 +9,9 @@
 
 struct ff_config
 {
-    const char *port;
-    const char *ip_address;
+    char *port;
+    char *ip_address;
+    uint16_t timestamp_fudge_factor;
     struct ff_encryption_config encryption;
     enum ff_log_type logging_level;
     bool ipv6_v6only;
