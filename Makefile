@@ -14,8 +14,8 @@ else
 OPTIMISE_FLAGS=
 endif
 
-CC_FLAGS=-Wall -Wextra -std=c99 -D_GNU_SOURCE $(OPTIMISE_FLAGS)
-LD_FLAGS=
+CC_FLAGS=-Wall -Wextra -std=c99 -D_GNU_SOURCE $(OPTIMISE_FLAGS) $(CCFLAGS)
+LD_FLAGS=$(LDFLAGS)
 SERVER_LIBS=-lm -lssl -lcrypto -lpthread
 CLIENT_LIBS=-lssl -lcrypto
 
@@ -117,7 +117,7 @@ test: test_build
 	build/tests
 
 valgrind: test_build
-	valgrind --tool=memcheck --leak-check=full  --num-callers=100 build/tests
+	valgrind --tool=memcheck --leak-check=full  --num-callers=100 --error-exitcode=1 build/tests
 
 clean:
 	rm -f build/obj/*.o
