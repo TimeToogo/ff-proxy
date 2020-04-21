@@ -7,6 +7,7 @@
 #include "server/test_http.c"
 #include "server/test_config.c"
 #include "server/test_logging.c"
+#include "server/test_server.c"
 #include "client/test_config.c"
 #include "client/test_crypto.c"
 #include "client/test_client.c"
@@ -39,7 +40,9 @@ int main(void)
     RUN_TEST(test_request_parse_raw_http_post);
     RUN_TEST(test_request_parse_v1_single_chunk);
     RUN_TEST(test_request_parse_v1_multiple_chunks);
+    RUN_TEST(test_request_parse_v1_break_option);
     RUN_TEST(test_request_vectorise_payload);
+    RUN_TEST(test_ff_request_parse_options_from_payload);
     RUN_TEST(test_request_parse_v1_single_chunk_with_options);
     RUN_TEST(test_ff_request_parse_id_raw_http);
     RUN_TEST(test_ff_request_parse_id);
@@ -95,6 +98,8 @@ int main(void)
     RUN_TEST(test_parse_args_start_proxy_info);
     RUN_TEST(test_parse_args_start_proxy_debug);
     RUN_TEST(test_parse_args_start_proxy_psk);
+    RUN_TEST(test_parse_args_start_proxy_psk_pbkdf2_iterations);
+    RUN_TEST(test_parse_args_start_proxy_timestamp_fudge_factor);
     RUN_TEST(test_print_usage);
     RUN_TEST(test_print_version);
 
@@ -124,6 +129,9 @@ int main(void)
     RUN_TEST(test_client_packetise_request_single_packet);
     RUN_TEST(test_client_packetise_request_multiple_packets_with_option);
     RUN_TEST(test_client_make_request_http_and_encrypted);
+
+    RUN_TEST(test_validate_request_timestamp_valid);
+    RUN_TEST(test_validate_request_timestamp_invalid);
 
     RUN_TEST(test_log_debug);
     return UNITY_END();
