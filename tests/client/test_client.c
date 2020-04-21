@@ -50,6 +50,21 @@ void test_client_send_request_two_packets()
     TEST_ASSERT_EQUAL_MESSAGE(0, res, "return value check failed");
 }
 
+void test_client_create_payload_options()
+{
+    struct ff_client_config config = {.https = true};
+
+    struct ff_request *request = ff_request_alloc();
+
+    uint8_t result = ff_client_create_payload_options(request, &config);
+
+    TEST_ASSERT_EQUAL_MESSAGE(3, result, "return value check failed");
+    TEST_ASSERT_NOT_EQUAL_MESSAGE(NULL, request->payload, "payload check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(FF_REQUEST_OPTION_TYPE_HTTPS, request->payload->value[0], "option (1) type failed");
+
+    ff_request_free(request);
+}
+
 void test_client_read_payload_from_file()
 {
     char contents[] = "hello world";

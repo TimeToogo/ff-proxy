@@ -124,6 +124,7 @@ int main(void)
     RUN_TEST(test_client_generate_request_id);
     RUN_TEST(test_client_send_request_no_packets);
     RUN_TEST(test_client_send_request_two_packets);
+    RUN_TEST(test_client_create_payload_options);
     RUN_TEST(test_client_read_payload_from_file);
     RUN_TEST(test_client_packetise_request_empty_request);
     RUN_TEST(test_client_packetise_request_single_packet);

@@ -118,4 +118,6 @@ struct ff_request *ff_request_alloc(void);
 
 void ff_request_free(struct ff_request *);
 
+void ff_request_vectorise_payload(struct ff_request *request);
+
 #endif

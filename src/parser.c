@@ -344,34 +344,6 @@ size_t ff_request_parse_options(struct ff_request *request, uint32_t buff_size, 
     return i;
 }
 
-void ff_request_vectorise_payload(struct ff_request *request)
-{
-    if (request->payload->next == NULL)
-    {
-        return;
-    }
-
-    struct ff_request_payload_node *payload = ff_request_payload_node_alloc();
-    payload->length = request->payload_length;
-    payload->offset = 0;
-    payload->next = NULL;
-    payload->value = malloc(request->payload_length * sizeof(uint8_t));
-
-    struct ff_request_payload_node *node = request->payload;
-    struct ff_request_payload_node *tmp_node = NULL;
-
-    do
-    {
-        memcpy(payload->value + node->offset, node->value, node->length * sizeof(uint8_t));
-
-        tmp_node = node->next;
-        ff_request_payload_node_free(node);
-        node = tmp_node;
-    } while (node != NULL);
-
-    request->payload = payload;
-}
-
 void ff_request_parse_options_from_payload(struct ff_request *request)
 {
     assert(request != NULL);

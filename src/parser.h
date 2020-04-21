@@ -15,6 +15,4 @@ void ff_request_parse_chunk(struct ff_request *request, uint32_t buff_size, void
 
 void ff_request_parse_options_from_payload(struct ff_request *request);
 
-void ff_request_vectorise_payload(struct ff_request *request);
-
 #endif
