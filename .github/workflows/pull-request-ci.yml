@@ -15,3 +15,6 @@ jobs:
     - run: make test
       env:
         FF_OPTIMIZE: 1
+    - run: make valgrind
+      env:
+        FF_OPTIMIZE: 1
