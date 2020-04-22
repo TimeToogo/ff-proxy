@@ -4,7 +4,8 @@ package com.timetoogo.ffclient;
 public class FfRequestOption {
     public enum Type {
         EOL((byte) 0), ENCRYPTION_MODE((byte) 1), ENCRYPTION_IV((byte) 2), ENCRYPTION_TAG(
-                (byte) 3), HTTPS((byte) 4), KEY_DERIVE_MODE((byte) 5), KEY_DERIVE_SALT((byte) 6);
+                (byte) 3), HTTPS((byte) 4), KEY_DERIVE_MODE(
+                        (byte) 5), KEY_DERIVE_SALT((byte) 6), BREAK((byte) 7), TIMESTAMP((byte) 8);
 
         private byte value;
 

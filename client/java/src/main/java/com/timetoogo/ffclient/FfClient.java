@@ -10,6 +10,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse.BodySubscriber;
 import java.net.http.HttpResponse.BodySubscribers;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Random;
 import java.util.Map.Entry;
@@ -25,12 +26,14 @@ import javax.crypto.spec.SecretKeySpec;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.security.SecureRandom;
+import java.time.Clock;
 
 public class FfClient {
     private final Logger logger = Logger.getLogger(FfClient.class.getName());
     private final Charset UTF8 = Charset.forName("UTF-8");
     private FfConfig config;
     private final int MAX_PACKET_LENGTH = 1300;
+    private final int OPTION_HEADER_LENGTH = 3;
 
     static final class ByteArraySubscriber implements Flow.Subscriber<ByteBuffer> {
         final BodySubscriber<byte[]> wrapped;
@@ -88,23 +91,59 @@ public class FfClient {
         request.setVersion(FfRequest.Version.V1);
         request.setRequestId(this.getRandomInstance().nextLong());
 
-        if (httpRequest.uri().getScheme().equalsIgnoreCase("https")) {
-            request.getOptions().add(FfRequestOption.builder().type(FfRequestOption.Type.HTTPS)
-                    .length((short) 1).value(new byte[] {1}).build());
-        }
+        this.createRequestSecureOptions(request, httpRequest);
 
+        byte[] secureOptions = this.serializeOptions(request.getSecureOptions());
         byte[] httpMessage = this.serializeHttpRequest(httpRequest);
 
+        byte[] payload = new byte[secureOptions.length + httpMessage.length];
+        System.arraycopy(secureOptions, 0, payload, 0, secureOptions.length);
+        System.arraycopy(httpMessage, 0, payload, secureOptions.length, httpMessage.length);
+
         if (this.config.getPreSharedKey() != null && !this.config.getPreSharedKey().isEmpty()) {
-            httpMessage = this.encryptHttpMessage(httpMessage, request);
+            payload = this.encryptPayload(payload, request);
         }
 
-        request.setPayload(httpMessage);
+        request.setPayload(payload);
 
-        request.getOptions().add(
-                FfRequestOption.builder().type(FfRequestOption.Type.EOL).length((short) 0).build());
+        request.getOptions().add(FfRequestOption.builder().type(FfRequestOption.Type.BREAK)
+                .length((short) 0).build());
 
         return this.packetiseRequest(request);
+    }
+
+    private byte[] serializeOptions(List<FfRequestOption> options) {
+        int length = options.stream().mapToInt(i -> i.getLength() + OPTION_HEADER_LENGTH).reduce(0,
+                (i, a) -> i + a);
+        byte[] buffer = new byte[length];
+
+        this.writeRequestOptions(buffer, 0, options);
+
+        return buffer;
+    }
+
+    private void createRequestSecureOptions(FfRequest request, HttpRequest httpRequest) {
+        if (httpRequest.uri().getScheme().equalsIgnoreCase("https")) {
+            request.getSecureOptions()
+                    .add(FfRequestOption.builder().type(FfRequestOption.Type.HTTPS)
+                            .length((short) 1).value(new byte[] {1}).build());
+        }
+
+        request.getSecureOptions()
+                .add(FfRequestOption.builder().type(FfRequestOption.Type.TIMESTAMP)
+                        .length((short) 8).value(this.getCurrentTimestampBytes()).build());
+
+
+        request.getSecureOptions().add(
+                FfRequestOption.builder().type(FfRequestOption.Type.EOL).length((short) 0).build());
+    }
+
+    private byte[] getCurrentTimestampBytes() {
+        long now = Clock.systemUTC().instant().toEpochMilli() / 1000;
+        byte[] buffer = new byte[8];
+        this.writeLong(buffer, 0, now);
+
+        return buffer;
     }
 
     byte[] serializeHttpRequest(HttpRequest request) throws IOException {
@@ -163,7 +202,7 @@ public class FfClient {
         return bytes;
     }
 
-    byte[] encryptHttpMessage(byte[] httpMessage, FfRequest request) throws Exception {
+    byte[] encryptPayload(byte[] payload, FfRequest request) throws Exception {
         this.logger.info("Encrypting payload");
         Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
 
@@ -184,7 +223,7 @@ public class FfClient {
 
         cipher.init(Cipher.ENCRYPT_MODE, keySpec, gcmSpec);
 
-        byte[] cipherTextWithTag = cipher.doFinal(httpMessage);
+        byte[] cipherTextWithTag = cipher.doFinal(payload);
 
         byte[] cipherText = new byte[cipherTextWithTag.length - tagLength];
         byte[] tag = new byte[tagLength];
@@ -242,15 +281,7 @@ public class FfClient {
                         }
                     };
 
-            for (var option : options) {
-                packetBuff[ptr++] = option.getType().getValue();
-                ptr = this.writeShort(packetBuff, ptr, option.getLength());
-
-                if (option.getLength() > 0) {
-                    System.arraycopy(option.getValue(), 0, packetBuff, ptr, option.getLength());
-                    ptr += option.getLength();
-                }
-            }
+            ptr = this.writeRequestOptions(packetBuff, ptr, options);
 
             short chunkLength = (short) Math.min(MAX_PACKET_LENGTH - ptr, bytesLeft);
 
@@ -268,6 +299,20 @@ public class FfClient {
         this.logger.info(String.format("Converted request into %d packets", packets.size()));
 
         return packets;
+    }
+
+    private int writeRequestOptions(byte[] packetBuff, int ptr, List<FfRequestOption> options) {
+        for (var option : options) {
+            packetBuff[ptr++] = option.getType().getValue();
+            ptr = this.writeShort(packetBuff, ptr, option.getLength());
+
+            if (option.getLength() > 0) {
+                System.arraycopy(option.getValue(), 0, packetBuff, ptr, option.getLength());
+                ptr += option.getLength();
+            }
+        }
+
+        return ptr;
     }
 
     private int writeShort(byte[] buff, int offset, short val) {

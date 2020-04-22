@@ -13,6 +13,7 @@ import java.net.http.HttpRequest.BodyPublishers;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
+import java.time.Clock;
 import java.util.Arrays;
 
 public class FfClientTest {
@@ -74,7 +75,7 @@ public class FfClientTest {
 
         var request = new FfRequest();
 
-        byte[] ciphertext = client.encryptHttpMessage(plaintext, request);
+        byte[] ciphertext = client.encryptPayload(plaintext, request);
 
         assertNotEquals(ciphertext, plaintext);
         assertEquals(ciphertext.length, plaintext.length);
@@ -125,16 +126,23 @@ public class FfClientTest {
         var packet1 = packets.get(0);
         var packet1Buff = ByteBuffer.wrap(packet1.getValue()).order(ByteOrder.BIG_ENDIAN);
 
+        var payloadOptionsLength = 11 + 4 + 3; // Timestamp option + HTTPS option + EOL option
+
         // Version
         assertEquals(1, packet1Buff.getShort());
         // Request Id
         assertNotEquals(0, packet1Buff.getLong());
         // Total length
-        assertEquals(payload.length, packet1Buff.getInt());
+        assertEquals(payload.length + payloadOptionsLength, packet1Buff.getInt());
         // Chunk offset
         assertEquals(0, packet1Buff.getInt());
         // Chunk length
-        assertEquals(payload.length, packet1Buff.getShort());
+        assertEquals(payload.length + payloadOptionsLength, packet1Buff.getShort());
+
+        // Break option
+        assertEquals(FfRequestOption.Type.BREAK.getValue(), packet1Buff.get());
+        // Break option length
+        assertEquals(0, packet1Buff.getShort());
 
         // HTTPS option
         assertEquals(FfRequestOption.Type.HTTPS.getValue(), packet1Buff.get());
@@ -142,6 +150,13 @@ public class FfClientTest {
         assertEquals(1, packet1Buff.getShort());
         // HTTPS option value
         assertEquals(1, packet1Buff.get());
+
+        // Timestamp option
+        assertEquals(FfRequestOption.Type.TIMESTAMP.getValue(), packet1Buff.get());
+        // Timestamp option length
+        assertEquals(8, packet1Buff.getShort());
+        // Timestamp option value
+        assertTrue("Timestamp option must be valid", Math.abs((Clock.systemUTC().instant().toEpochMilli() / 1000) - packet1Buff.getLong()) < 3);
 
         // EOL option
         assertEquals(FfRequestOption.Type.EOL.getValue(), packet1Buff.get());
@@ -172,23 +187,18 @@ public class FfClientTest {
         var packet1 = packets.get(0);
         var packet1Buff = ByteBuffer.wrap(packet1.getValue()).order(ByteOrder.BIG_ENDIAN);
 
+        var payloadOptionsLength = 11 + 4 + 3; // Timestamp option + HTTPS option + EOL option
+
         // Version
         assertEquals(1, packet1Buff.getShort());
         // Request Id
         assertNotEquals(0, packet1Buff.getLong());
         // Total length
-        assertEquals(payload.length, packet1Buff.getInt());
+        assertEquals(payload.length + payloadOptionsLength, packet1Buff.getInt());
         // Chunk offset
         assertEquals(0, packet1Buff.getInt());
         // Chunk length
-        assertEquals(payload.length, packet1Buff.getShort());
-
-        // HTTPS option
-        assertEquals(FfRequestOption.Type.HTTPS.getValue(), packet1Buff.get());
-        // HTTPS option length
-        assertEquals(1, packet1Buff.getShort());
-        // HTTPS option value
-        assertEquals(1, packet1Buff.get());
+        assertEquals(payload.length + payloadOptionsLength, packet1Buff.getShort());
 
         // Encryption mode option
         assertEquals(FfRequestOption.Type.ENCRYPTION_MODE.getValue(), packet1Buff.get());
@@ -225,17 +235,17 @@ public class FfClientTest {
         // Key derive salt option value
         packet1Buff.position(packet1Buff.position() + 16);
 
-        // EOL option
-        assertEquals(FfRequestOption.Type.EOL.getValue(), packet1Buff.get());
-        // EOL option length
+        // Break option
+        assertEquals(FfRequestOption.Type.BREAK.getValue(), packet1Buff.get());
+        // Break option length
         assertEquals(0, packet1Buff.getShort());
 
         // Payload
-        assertNotEquals(payload, Arrays.copyOfRange(packet1Buff.array(), packet1Buff.position(),
-                packet1Buff.position() + payload.length));
+        assertNotEquals(payload, Arrays.copyOfRange(packet1Buff.array(), packet1Buff.position() + payloadOptionsLength,
+                packet1Buff.position() + payloadOptionsLength + payload.length));
 
         // Packet length
-        assertEquals(packet1.getLength(), packet1Buff.position() + payload.length);
+        assertEquals(packet1.getLength(), packet1Buff.position() + payloadOptionsLength + payload.length);
     }
 
     @Test
@@ -255,6 +265,7 @@ public class FfClientTest {
 
         var packet1 = packets.get(0);
         var packet1Buff = ByteBuffer.wrap(packet1.getValue()).order(ByteOrder.BIG_ENDIAN);
+        var payloadOptionsLength = 11 + 4 + 3; // Timestamp option + HTTPS option + EOL option
 
         // Version
         assertEquals(1, packet1Buff.getShort());
@@ -262,11 +273,16 @@ public class FfClientTest {
         long packet1RequestId = packet1Buff.getLong();
         assertNotEquals(0, packet1RequestId);
         // Total length
-        assertEquals(payload.length, packet1Buff.getInt());
+        assertEquals(payload.length + payloadOptionsLength, packet1Buff.getInt());
         // Chunk offset
         assertEquals(0, packet1Buff.getInt());
         // Chunk length
-        assertEquals(1273, packet1Buff.getShort());
+        assertEquals(1277, packet1Buff.getShort());
+
+        // Break option
+        assertEquals(FfRequestOption.Type.BREAK.getValue(), packet1Buff.get());
+        // Break option length
+        assertEquals(0, packet1Buff.getShort());
 
         // HTTPS option
         assertEquals(FfRequestOption.Type.HTTPS.getValue(), packet1Buff.get());
@@ -274,6 +290,13 @@ public class FfClientTest {
         assertEquals(1, packet1Buff.getShort());
         // HTTPS option value
         assertEquals(1, packet1Buff.get());
+
+        // Timestamp option
+        assertEquals(FfRequestOption.Type.TIMESTAMP.getValue(), packet1Buff.get());
+        // Timestamp option length
+        assertEquals(8, packet1Buff.getShort());
+        // Timestamp option value
+        assertTrue("Timestamp option must be valid", Math.abs((Clock.systemUTC().instant().toEpochMilli() / 1000) - packet1Buff.getLong()) < 3);
 
         // EOL option
         assertEquals(FfRequestOption.Type.EOL.getValue(), packet1Buff.get());
@@ -298,11 +321,11 @@ public class FfClientTest {
         long packet2RequestId = packet2Buff.getLong();
         assertNotEquals(0, packet2RequestId);
         // Total length
-        assertEquals(payload.length, packet2Buff.getInt());
+        assertEquals(payload.length + payloadOptionsLength, packet2Buff.getInt());
         // Chunk offset
-        assertEquals(1273, packet2Buff.getInt());
+        assertEquals(1277, packet2Buff.getInt());
         // Chunk length
-        assertEquals(payload.length - 1273, packet2Buff.getShort());
+        assertEquals(payload.length - (1277 - payloadOptionsLength), packet2Buff.getShort());
 
         // EOL option
         assertEquals(FfRequestOption.Type.EOL.getValue(), packet2Buff.get());
@@ -315,7 +338,7 @@ public class FfClientTest {
                         packet2Buff.position() + payload.length - 1273));
 
         // Packet length
-        assertEquals(packet2.getLength(), packet2Buff.position() + payload.length - 1273);
+        assertEquals(packet2.getLength(), packet2Buff.position() + payload.length - (1277 - payloadOptionsLength));
 
         // Request ids
         assertEquals(packet1RequestId, packet2RequestId);
