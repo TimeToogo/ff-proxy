@@ -16,6 +16,7 @@
 #include "http.h"
 #include "logging.h"
 #include "alloc.h"
+#include "os/linux_endian.h"
 
 #define FF_PROXY_BUFF_SIZE 2000 // Based on typical path MTU of 1500
 #define FF_PROXY_CLEAN_INTERVAL_SECS 60
