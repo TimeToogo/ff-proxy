@@ -17,7 +17,7 @@ class TestFfClient(unittest.TestCase):
 
         request = FfRequest(version=FfRequest.Version.V1,
                             request_id=123)
-        payload = "GET / HTTP/1.1\nHost: google.com\n\n"
+        payload = bytearray("GET / HTTP/1.1\nHost: google.com\n\n".encode('utf8'))
 
         encrypted_payload = client.encrypted_request_payload(request, payload)
 

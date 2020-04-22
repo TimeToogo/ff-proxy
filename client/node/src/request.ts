@@ -13,6 +13,8 @@ export enum FfRequestOptionType {
   HTTPS = 4,
   KEY_DERIVE_MODE = 5,
   KEY_DERIVE_SALT = 6,
+  BREAK = 7,
+  TIMESTAMP = 8
 }
 
 export enum FfEncryptionMode {
@@ -33,4 +35,5 @@ export interface FfRequest {
   requestId: Uint8Array;
   payload: Uint8Array;
   options: FfRequestOption[];
+  secureOptions: FfRequestOption[];
 }

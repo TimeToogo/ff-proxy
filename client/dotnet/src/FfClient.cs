@@ -15,6 +15,7 @@ namespace FfClient
     public class FfClient
     {
         private const ushort MAX_PACKET_LENGTH = 1300;
+        private const byte OPTION_HEADER_LENGTH = 3;
 
         private readonly FfConfig config;
 
@@ -73,30 +74,69 @@ namespace FfClient
                 RequestId = BitConverter.ToUInt64(requestIdBytes)
             };
 
+            this.CreateRequestSecureOptions(request, httpRequest);
+
+            byte[] secureOptions = this.SerializeRequestOptions(request.SecureOptions);
+            byte[] httpMessage = await this.SerializeHttpMessage(httpRequest);
+
+            byte[] payload = new byte[secureOptions.Length + httpMessage.Length];
+            Buffer.BlockCopy(secureOptions, 0, payload, 0, secureOptions.Length);
+            Buffer.BlockCopy(httpMessage, 0, payload, secureOptions.Length, httpMessage.Length);
+
+            if (!string.IsNullOrEmpty(this.config.PreSharedKey))
+            {
+                payload = this.EncryptPayload(payload, request);
+            }
+
+            request.Options.Add(new FfRequestOption()
+            {
+                OptionType = request.SecureOptions.Count == 0 ? FfRequestOption.Type.TYPE_EOL : FfRequestOption.Type.TYPE_BREAK
+            });
+
+            request.Payload = payload;
+
+            return this.PacketiseRequest(request);
+        }
+
+        private byte[] SerializeRequestOptions(List<FfRequestOption> secureOptions)
+        {
+            var buffer = new byte[secureOptions.Sum(i => i.Length + OPTION_HEADER_LENGTH)];
+            int offset = 0;
+            this.WriteOptions(buffer, secureOptions, ref offset);
+
+            return buffer;
+        }
+
+        private void CreateRequestSecureOptions(FfRequest request, HttpRequestMessage httpRequest)
+        {
             if (httpRequest.RequestUri.Scheme.ToLower() == "https")
             {
-                request.Options.Add(new FfRequestOption()
+                request.SecureOptions.Add(new FfRequestOption()
                 {
                     OptionType = FfRequestOption.Type.TYPE_HTTPS,
                     Value = new byte[] { 1 }
                 });
             }
 
-            byte[] httpMessage = await this.SerializeHttpMessage(httpRequest);
-
-            if (!string.IsNullOrEmpty(this.config.PreSharedKey))
+            request.SecureOptions.Add(new FfRequestOption()
             {
-                httpMessage = this.EncryptHttpMessage(httpMessage, request);
-            }
+                OptionType = FfRequestOption.Type.TYPE_TIMESTAMP,
+                Value = this.GetCurrentTimestampBytes()
+            });
 
-            request.Options.Add(new FfRequestOption()
+            request.SecureOptions.Add(new FfRequestOption()
             {
                 OptionType = FfRequestOption.Type.TYPE_EOL
             });
+        }
 
-            request.Payload = httpMessage;
+        private byte[] GetCurrentTimestampBytes()
+        {
+            var buffer = new byte[8];
+            int offset = 0;
+            this.WriteNumber(buffer, (ulong)DateTimeOffset.Now.ToUnixTimeSeconds(), ref offset);
 
-            return this.PacketiseRequest(request);
+            return buffer;
         }
 
         internal async Task<byte[]> SerializeHttpMessage(HttpRequestMessage httpRequest)
@@ -174,7 +214,7 @@ namespace FfClient
             }
         }
 
-        internal byte[] EncryptHttpMessage(byte[] httpMessage, FfRequest request)
+        internal byte[] EncryptPayload(byte[] payload, FfRequest request)
         {
             Debug.WriteLine("Encrypting HTTP message using AES-256-GCM with PBKDF2");
 
@@ -191,12 +231,11 @@ namespace FfClient
             var iv = new byte[12];
             this.rng.GetBytes(iv);
             var tag = new byte[16];
-            var cipherText = new byte[httpMessage.Length];
-
+            var cipherText = new byte[payload.Length];
 
             using (var aesGcm = new AesGcm(derivedKey))
             {
-                aesGcm.Encrypt(iv, httpMessage, cipherText, tag);
+                aesGcm.Encrypt(iv, payload, cipherText, tag);
             }
 
             request.Options.Add(new FfRequestOption()
@@ -253,18 +292,7 @@ namespace FfClient
 
                 if (chunkOffset == 0)
                 {
-                    foreach (var option in request.Options)
-                    {
-                        packet[i++] = (byte)option.OptionType;
-                        var optionLength = (ushort)(option.Value?.Length ?? 0);
-                        this.WriteNumber<ushort>(packet, optionLength, ref i);
-
-                        if (optionLength != 0)
-                        {
-                            Buffer.BlockCopy(option.Value, 0, packet, i, optionLength);
-                            i += optionLength;
-                        }
-                    }
+                    this.WriteOptions(packet, request.Options, ref i);
                 }
                 else
                 {
@@ -292,6 +320,22 @@ namespace FfClient
             }
 
             return packets;
+        }
+
+        private void WriteOptions(byte[] packet, List<FfRequestOption> options, ref int i)
+        {
+            foreach (var option in options)
+            {
+                packet[i++] = (byte)option.OptionType;
+                var optionLength = (ushort)(option.Value?.Length ?? 0);
+                this.WriteNumber<ushort>(packet, optionLength, ref i);
+
+                if (optionLength != 0)
+                {
+                    Buffer.BlockCopy(option.Value, 0, packet, i, optionLength);
+                    i += optionLength;
+                }
+            }
         }
 
         internal void WriteNumber<TNumber>(byte[] dest, TNumber number, ref int count)

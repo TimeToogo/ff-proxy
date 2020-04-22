@@ -7,6 +7,7 @@
 #include "alloc.h"
 #include "constants.h"
 #include "logging.h"
+#include "assert.h"
 #include "os/linux_endian.h"
 
 void ff_request_parse_chunk(struct ff_request *request, uint32_t buff_size, void *buff)
@@ -97,7 +98,7 @@ void ff_request_parse_raw_http(struct ff_request *request, uint32_t buff_size, v
 
 void ff_request_parse_data_chunk(struct ff_request *request, uint32_t buff_size, void *buff)
 {
-    uint32_t i = 0;
+    size_t i = 0;
 
     if (buff_size < sizeof(struct __raw_ff_request_header))
     {
@@ -151,8 +152,6 @@ void ff_request_parse_data_chunk(struct ff_request *request, uint32_t buff_size,
         return;
     }
 
-    struct __raw_ff_request_option_header *option_header = NULL;
-
     if (buff_size < i + sizeof(struct __raw_ff_request_option_header))
     {
         ff_log(FF_WARNING, "Packet buffer ran out while looking for TLV options");
@@ -163,67 +162,19 @@ void ff_request_parse_data_chunk(struct ff_request *request, uint32_t buff_size,
     // Only first request can contain options
     if (header->chunk_offset == 0)
     {
-        // Parse TLV options
-        struct ff_request_option_node *options[FF_REQUEST_MAX_OPTIONS];
-        int options_i = 0;
+        size_t options_i = ff_request_parse_options(request, buff_size - i, buff + i);
 
-        while (1)
+        if (options_i == 0)
         {
-            if (options_i >= FF_REQUEST_MAX_OPTIONS)
-            {
-                ff_log(FF_WARNING, "Encountered request with too many options");
-                request->state = FF_REQUEST_STATE_RECEIVING_FAIL;
-                return;
-            }
-
-            if (buff_size < i + sizeof(struct __raw_ff_request_option_header))
-            {
-                ff_log(FF_WARNING, "Packet buffer ran out while processing TLV options");
-                request->state = FF_REQUEST_STATE_RECEIVING_FAIL;
-                return;
-            }
-
-            option_header = (struct __raw_ff_request_option_header *)(buff + i);
-
-            // Normalise endianess
-            uint16_t option_length = ntohs(option_header->length);
-
-            i += sizeof(struct __raw_ff_request_option_header);
-
-            if (option_header->type == FF_REQUEST_OPTION_TYPE_EOL)
-            {
-                break;
-            }
-
-            if (buff_size < i + option_length)
-            {
-                ff_log(FF_WARNING, "Packet buffer ran out while processing TLV options");
-                request->state = FF_REQUEST_STATE_RECEIVING_FAIL;
-                return;
-            }
-
-            options[options_i] = ff_request_option_node_alloc();
-            options[options_i]->type = option_header->type;
-            options[options_i]->length = option_length;
-            ff_request_option_load_buff(
-                options[options_i],
-                option_length,
-                buff + i);
-
-            i += option_length;
-            options_i++;
+            request->state = FF_REQUEST_STATE_RECEIVING_FAIL;
+            return;
         }
 
-        request->options_length = options_i;
-        if (options_i != 0)
-        {
-            request->options = malloc(sizeof(struct ff_request_option_node *) * options_i);
-            memcpy(request->options, options, sizeof(struct ff_request_option_node *) * options_i);
-        }
+        i += options_i;
     }
     else
     {
-        option_header = (struct __raw_ff_request_option_header *)(buff + i);
+        struct __raw_ff_request_option_header *option_header = (struct __raw_ff_request_option_header *)(buff + i);
 
         i += sizeof(struct __raw_ff_request_option_header);
 
@@ -297,30 +248,156 @@ void ff_request_parse_data_chunk(struct ff_request *request, uint32_t buff_size,
     }
 }
 
-void ff_request_vectorise_payload(struct ff_request *request)
+size_t ff_request_parse_options(struct ff_request *request, uint32_t buff_size, void *buff)
 {
-    if (request->payload->next == NULL)
+    struct __raw_ff_request_option_header *option_header = NULL;
+    struct ff_request_option_node *options[FF_REQUEST_MAX_OPTIONS];
+    uint8_t options_i = 0;
+    uint32_t i = 0;
+    size_t current_options_size = request->options_length;
+
+    // Parse TLV options
+    while (1)
     {
+        if (current_options_size + options_i >= FF_REQUEST_MAX_OPTIONS)
+        {
+            ff_log(FF_WARNING, "Encountered request with too many options");
+            return 0;
+        }
+
+        if (buff_size < i + sizeof(struct __raw_ff_request_option_header))
+        {
+            ff_log(FF_WARNING, "Packet buffer ran out while processing TLV options");
+            return 0;
+        }
+
+        option_header = (struct __raw_ff_request_option_header *)(buff + i);
+
+        // Normalise endianess
+        uint16_t option_length = ntohs(option_header->length);
+
+        i += sizeof(struct __raw_ff_request_option_header);
+
+        if (option_header->type == FF_REQUEST_OPTION_TYPE_BREAK)
+        {
+            if (option_length != 0)
+            {
+                ff_log(FF_WARNING, "Request option FF_REQUEST_OPTION_TYPE_BREAK must have length = 0");
+                return 0;
+            }
+
+            request->payload_contains_options = true;
+            break;
+        }
+
+        if (option_header->type == FF_REQUEST_OPTION_TYPE_EOL)
+        {
+            if (option_length != 0)
+            {
+                ff_log(FF_WARNING, "Request option FF_REQUEST_OPTION_TYPE_EOL must have length = 0");
+                return 0;
+            }
+
+            request->payload_contains_options = false;
+            break;
+        }
+
+        if (buff_size < i + option_length)
+        {
+            ff_log(FF_WARNING, "Packet buffer ran out while processing TLV options");
+            return 0;
+        }
+
+        options[options_i] = ff_request_option_node_alloc();
+        options[options_i]->type = option_header->type;
+        options[options_i]->length = option_length;
+        ff_request_option_load_buff(
+            options[options_i],
+            option_length,
+            buff + i);
+
+        i += option_length;
+        options_i++;
+    }
+
+    if (options_i == 0)
+    {
+        return i;
+    }
+
+    request->options_length = current_options_size + options_i;
+
+    if (request->options == NULL)
+    {
+        request->options = malloc(sizeof(struct ff_request_option_node *) * request->options_length);
+    }
+    else
+    {
+        request->options = realloc(request->options, sizeof(struct ff_request_option_node *) * request->options_length);
+    }
+
+    memcpy(
+        request->options + current_options_size,
+        options,
+        sizeof(struct ff_request_option_node *) * options_i);
+
+    return i;
+}
+
+void ff_request_parse_options_from_payload(struct ff_request *request)
+{
+    assert(request != NULL);
+    assert(request->payload != NULL);
+    assert(request->payload->next == NULL);
+
+    struct ff_request_payload_node *payload = NULL;
+    size_t options_length = 0;
+
+    request->state = FF_REQUEST_STATE_PARSING_OPTIONS;
+
+    if (!request->payload_contains_options)
+    {
+        goto done;
+    }
+
+    payload = request->payload;
+    options_length = ff_request_parse_options(request, payload->length, payload->value);
+
+    if (options_length == 0)
+    {
+        request->state = FF_REQUEST_STATE_PARSING_OPTIONS_FAILED;
         return;
     }
 
-    struct ff_request_payload_node *payload = ff_request_payload_node_alloc();
-    payload->length = request->payload_length;
-    payload->offset = 0;
-    payload->next = NULL;
-    payload->value = malloc(request->payload_length * sizeof(uint8_t));
-
-    struct ff_request_payload_node *node = request->payload;
-    struct ff_request_payload_node *tmp_node = NULL;
-
-    do
+    if (request->payload->length <= options_length)
     {
-        memcpy(payload->value + node->offset, node->value, node->length * sizeof(uint8_t));
+        ff_log(FF_WARNING, "Request buffer ran out of buffer while parsing options within payload");
+        goto error;
+    }
 
-        tmp_node = node->next;
-        ff_request_payload_node_free(node);
-        node = tmp_node;
-    } while (node != NULL);
+    if (request->payload_contains_options)
+    {
+        ff_log(FF_WARNING, "Request cannot contain multiple FF_REQUEST_OPTION_TYPE_BREAK options");
+        goto error;
+    }
 
-    request->payload = payload;
+    struct ff_request_payload_node *new_payload = ff_request_payload_node_alloc();
+    new_payload->length = payload->length - options_length;
+    ff_request_payload_load_buff(new_payload, new_payload->length, payload->value + options_length);
+
+    request->payload = new_payload;
+    request->payload_length = new_payload->length;
+
+    goto done;
+
+done:
+    request->state = FF_REQUEST_STATE_PARSED_OPTIONS;
+    goto cleanup;
+
+error:
+    request->state = FF_REQUEST_STATE_PARSING_OPTIONS_FAILED;
+    goto cleanup;
+
+cleanup:
+    ff_request_payload_node_free(payload);
 }

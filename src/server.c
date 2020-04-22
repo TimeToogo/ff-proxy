@@ -16,6 +16,7 @@
 #include "http.h"
 #include "logging.h"
 #include "alloc.h"
+#include "os/linux_endian.h"
 
 #define FF_PROXY_BUFF_SIZE 2000 // Based on typical path MTU of 1500
 #define FF_PROXY_CLEAN_INTERVAL_SECS 60
@@ -87,7 +88,7 @@ int ff_proxy_start(struct ff_config *config)
     ff_log(FF_DEBUG, "Binding to address");
     err = bind(sockfd, res->ai_addr, res->ai_addrlen);
     freeaddrinfo(res);
-    
+
     if (err)
     {
         ff_log(FF_FATAL, "Failed to bind to address");
@@ -218,6 +219,19 @@ void ff_proxy_process_request(struct ff_process_request_args *args)
         goto error;
     }
 
+    ff_request_parse_options_from_payload(request);
+
+    if (request->state != FF_REQUEST_STATE_PARSED_OPTIONS)
+    {
+        goto error;
+    }
+
+    if (!ff_proxy_validate_request_timestamp(request, config))
+    {
+        ff_log(FF_WARNING, "Request received with timestamp outside of acceptable window", request->request_id);
+        goto error;
+    }
+
     ff_http_send_request(request);
 
     if (request->state != FF_REQUEST_STATE_SENT)
@@ -243,6 +257,34 @@ cleanup:
 
     ff_request_free(request);
     FREE(args);
+}
+
+bool ff_proxy_validate_request_timestamp(struct ff_request *request, struct ff_config *config)
+{
+    uint64_t timestamp = 0;
+    uint64_t now;
+    uint64_t diff;
+
+    // Read options backwards to ensure the encrypted options take precedence
+    uint8_t i = request->options_length;
+    while (i-- > 0)
+    {
+        if (request->options[i]->type == FF_REQUEST_OPTION_TYPE_TIMESTAMP && request->options[i]->length == 8)
+        {
+            memcpy(&timestamp, request->options[i]->value, 8);
+            timestamp = ntohll(timestamp);
+        }
+    }
+
+    if (timestamp == 0)
+    {
+        return true;
+    }
+
+    now = (uint64_t)time(NULL);
+    diff = now > timestamp ? now - timestamp : timestamp - now;
+
+    return diff <= config->timestamp_fudge_factor;
 }
 
 void ff_proxy_clean_up_old_requests_loop(struct ff_hash_table *requests)

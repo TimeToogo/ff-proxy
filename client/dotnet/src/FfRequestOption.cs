@@ -16,9 +16,12 @@ namespace FfClient
             TYPE_HTTPS = 4,
             TYPE_KEY_DERIVE_MODE = 5,
             TYPE_KEY_DERIVE_SALT = 6,
+            TYPE_BREAK = 7,
+            TYPE_TIMESTAMP = 8,
         }
 
         public FfRequestOption.Type OptionType { get; set; }
         public byte[] Value { get; set; }
+        public int Length => this.Value?.Length ?? 0;
     }
 }

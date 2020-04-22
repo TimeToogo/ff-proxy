@@ -4,6 +4,7 @@ from .udp_packet import UdpPacket
 import socket
 import struct
 import logging
+import time
 from Cryptodome.Random import get_random_bytes, random
 from Cryptodome.Cipher import AES
 from Cryptodome.Protocol.KDF import PBKDF2
@@ -13,6 +14,7 @@ from typing import List
 
 class FfClient:
     MAX_PACKET_LENGTH = 1300
+    OPTION_HEADER_LENGTH = 3
 
     def __init__(self, config: FfConfig):
         self.config = config
@@ -50,22 +52,49 @@ class FfClient:
         request = FfRequest(version=FfRequest.Version.V1,
                             request_id=random.getrandbits(64))
 
-        if https:
-            request.options.append(FfRequest.Option(
-                FfRequest.Option.Type.HTTPS, 1, bytearray([1])))
+        self.create_secure_options(request, https)
+        secure_options = self.serialize_secure_options(request.secure_options)
+        payload = secure_options + bytearray(http_request.encode('utf8'))
 
         if (self.config.pre_shared_key):
-            http_request = self.encrypted_request_payload(
-                request, http_request)
+            payload = self.encrypted_request_payload(
+                request, payload)
 
         request.options.append(FfRequest.Option(
-            FfRequest.Option.Type.EOL, 0, bytearray([])))
+            FfRequest.Option.Type.BREAK, 0, bytearray([])))
 
-        request.payload = http_request
+        request.payload = payload
 
         return self.packetise_request(request)
 
-    def encrypted_request_payload(self, request: FfRequest, payload: str) -> str:
+    def create_secure_options(self, request: FfRequest, https: bool):
+        if https:
+            request.secure_options.append(FfRequest.Option(
+                FfRequest.Option.Type.HTTPS, 1, bytearray([1])))
+
+        request.secure_options.append(FfRequest.Option(
+            FfRequest.Option.Type.TIMESTAMP, 8, self.get_current_timestamp_bytes()))
+
+        request.secure_options.append(FfRequest.Option(
+            FfRequest.Option.Type.EOL, 0, bytearray([])))
+
+    def get_current_timestamp_bytes(self):
+        timestamp = int(time.time())
+        buff = bytearray(8)
+
+        self.pack_into_size('!Q', buff, 0, timestamp)
+
+        return buff
+
+    def serialize_secure_options(self, options: List[FfRequest.Option]) -> bytearray:
+        length = sum(map(lambda i: self.OPTION_HEADER_LENGTH + i.length, options))
+        buff = bytearray(length)
+
+        self.write_request_options(buff, 0, options)
+        print(buff)
+        return buff
+
+    def encrypted_request_payload(self, request: FfRequest, payload: bytearray) -> str:
         self.logger.debug('Encrypting request payload')
 
         if not self.config.pre_shared_key:
@@ -83,8 +112,7 @@ class FfClient:
         cipher = AES.new(key=derived_key, mode=AES.MODE_GCM,
                          nonce=iv, mac_len=16)
 
-        ciphertext, tag = cipher.encrypt_and_digest(
-            bytearray(payload.encode('utf8')))
+        ciphertext, tag = cipher.encrypt_and_digest(payload)
 
         request.options.append(FfRequest.Option(
             FfRequest.Option.Type.ENCRYPTION_MODE,
@@ -154,13 +182,7 @@ class FfClient:
             options = request.options if chunk_offset == 0 else [
                 FfRequest.Option(FfRequest.Option.Type.EOL, 0, bytearray([]))]
 
-            for option in options:
-                ptr += self.pack_into_size('!B', packet_buff, ptr, option.type)
-                ptr += self.pack_into_size('!H',
-                                           packet_buff, ptr, option.length)
-                for i in option.value:
-                    packet_buff[ptr] = i
-                    ptr += 1
+            ptr = self.write_request_options(packet_buff, ptr, options)
 
             chunk_length = min(self.MAX_PACKET_LENGTH - ptr, bytes_left)
             self.pack_into_size('!H', packet_buff,
@@ -178,6 +200,17 @@ class FfClient:
         self.logger.debug('Packetised request into %d packets' % len(packets))
 
         return packets
+
+    def write_request_options(self, buff: bytearray, ptr: int, options: List[FfRequest.Option]) -> int:
+        for option in options:
+            ptr += self.pack_into_size('!B', buff, ptr, option.type)
+            ptr += self.pack_into_size('!H',
+                                        buff, ptr, option.length)
+            for i in option.value:
+                buff[ptr] = i
+                ptr += 1
+
+        return ptr
 
     def pack_into_size(self, format: str, buff: bytearray, offset: int, value) -> int:
         size = struct.calcsize(format)

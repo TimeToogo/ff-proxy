@@ -13,22 +13,22 @@
 #define FF_PARSE_ARG_PARSE_IP 2
 #define FF_PARSE_ARG_PARSE_PSK 3
 #define FF_PARSE_ARG_PARSE_PBKDF2_ITERATIONS 4
+#define FF_PARSE_ARG_PARSE_TIMESTAMP_FUDGE_FACTOR 5
 
-static const char *default_listen_address = "0.0.0.0";
+static char *default_listen_address = "0.0.0.0";
 
 enum ff_action ff_parse_arguments(struct ff_config *config, int argc, char **argv)
 {
+    // Default values
+    char *port = NULL;
+    char *listen_address = default_listen_address;
     enum ff_action action = FF_ACTION_START_PROXY;
     int state = FF_PARSE_ARG_STATE_DEFAULT;
     enum ff_log_type logging_level = FF_ERROR;
-    struct ff_encryption_config encryption_config = {.key = NULL, .pbkdf2_iterations = 1000};
-
-    /*
-     * Not strictly necessary as config is declared global static,
-     * but the tests repeatedly call this function, so ensure it's
-     * cleared each time for them.
-     */
-    memset(config, 0, sizeof(struct ff_config));
+    struct ff_encryption_config encryption_config = {
+        .key = NULL,
+        .pbkdf2_iterations = 1000};
+    uint16_t timestamp_fudge_factor = 30;
 
     for (int i = 1; i < argc; i++)
     {
@@ -67,6 +67,10 @@ enum ff_action ff_parse_arguments(struct ff_config *config, int argc, char **arg
             {
                 state = FF_PARSE_ARG_PARSE_PBKDF2_ITERATIONS;
             }
+            else if (strcasecmp(arg, "--timestamp-fudge-factor") == 0)
+            {
+                state = FF_PARSE_ARG_PARSE_TIMESTAMP_FUDGE_FACTOR;
+            }
             else if (strcasecmp(arg, "-vvv") == 0)
             {
                 logging_level = FF_DEBUG;
@@ -79,7 +83,7 @@ enum ff_action ff_parse_arguments(struct ff_config *config, int argc, char **arg
             {
                 logging_level = FF_WARNING;
             }
-            else 
+            else
             {
                 fprintf(stderr, "Unkown argument %s\n\n", arg);
                 action = FF_ACTION_INVALID_ARGS;
@@ -89,16 +93,16 @@ enum ff_action ff_parse_arguments(struct ff_config *config, int argc, char **arg
 
         case FF_PARSE_ARG_PARSE_PORT:
         {
-            int port = atoi(arg);
+            int parsed_port = atoi(arg);
 
-            if (port <= 0 || port > UINT16_MAX)
+            if (parsed_port <= 0 || parsed_port > UINT16_MAX)
             {
                 fprintf(stderr, "Invalid --port argument: %s\n\n", arg);
                 action = FF_ACTION_INVALID_ARGS;
                 goto done;
             }
 
-            config->port = arg;
+            port = arg;
             state = FF_PARSE_ARG_STATE_DEFAULT;
             break;
         }
@@ -124,7 +128,7 @@ enum ff_action ff_parse_arguments(struct ff_config *config, int argc, char **arg
                 goto done;
             }
 
-            config->ip_address = arg;
+            listen_address = arg;
             state = FF_PARSE_ARG_STATE_DEFAULT;
             break;
         }
@@ -136,7 +140,7 @@ enum ff_action ff_parse_arguments(struct ff_config *config, int argc, char **arg
 
         case FF_PARSE_ARG_PARSE_PBKDF2_ITERATIONS:
             encryption_config.pbkdf2_iterations = atoi(arg);
-            
+
             if (encryption_config.pbkdf2_iterations <= 0)
             {
                 fprintf(stderr, "Invalid --pbkdf2-iterations argument: %s\n\n", arg);
@@ -147,6 +151,23 @@ enum ff_action ff_parse_arguments(struct ff_config *config, int argc, char **arg
             state = FF_PARSE_ARG_STATE_DEFAULT;
             break;
 
+        case FF_PARSE_ARG_PARSE_TIMESTAMP_FUDGE_FACTOR:
+        {
+            int parsed = atoi(arg);
+
+            if (parsed <= 0 || parsed > UINT16_MAX)
+            {
+                fprintf(stderr, "Invalid --timestamp-fudge-factor argument: %s\n\n", arg);
+                action = FF_ACTION_INVALID_ARGS;
+                goto done;
+            }
+
+            timestamp_fudge_factor = (uint16_t)parsed;
+
+            state = FF_PARSE_ARG_STATE_DEFAULT;
+            break;
+        }
+
         default:
             fputs("Unkown parse arg state\n\n", stderr);
             action = FF_ACTION_INVALID_ARGS;
@@ -156,19 +177,18 @@ enum ff_action ff_parse_arguments(struct ff_config *config, int argc, char **arg
 
     if (action == FF_ACTION_START_PROXY)
     {
-        if (!config->port)
+        if (!port)
         {
             fputs("--port is required\n\n", stderr);
             action = FF_ACTION_INVALID_ARGS;
             goto done;
         }
 
-        if (!config->ip_address)
-        {
-            config->ip_address = default_listen_address;
-        }
+        config->ip_address = listen_address;
+        config->port = port;
         config->encryption = encryption_config;
         config->logging_level = logging_level;
+        config->timestamp_fudge_factor = timestamp_fudge_factor;
     }
 
 done:
@@ -183,6 +203,8 @@ start proxy: ff\n\
     --port bind_port_num\n\
     [--ip-address bind_ip_address] # format: 0.0.0.0 or 2001:db8::1\n\
     [--ipv6-v6only] # don't accept IPv4 connections on an IPv6 socket\n\
+    [--pbkdf2-iterations num] # hashing iterations used to derive encryption keys \n\
+    [--timestamp-fudge-factor num] # amount of seconds away from the hosts time to tolerate for incoming requests \n\
     [--pre-shared-key pre_shared_key]\n\
     -v[vv] \n\
 \n\

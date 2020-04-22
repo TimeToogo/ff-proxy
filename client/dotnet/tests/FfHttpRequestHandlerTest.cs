@@ -17,6 +17,7 @@ namespace FfClient.Tests
             {
                 IPAddress = IPAddress.Loopback,
                 Port = 8080,
+                PreSharedKey = "test"
             };
         }
 

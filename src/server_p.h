@@ -25,6 +25,8 @@ void ff_proxy_process_incoming_packet(
 
 void ff_proxy_process_request(struct ff_process_request_args *args);
 
+bool ff_proxy_validate_request_timestamp(struct ff_request *request, struct ff_config *config);
+
 void ff_proxy_clean_up_old_requests_loop(struct ff_hash_table *requests);
 
 #endif

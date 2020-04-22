@@ -111,7 +111,8 @@ namespace FfClient.Tests
 
             var packet = packets[0].Packet;
             var requestPayload = "GET / HTTP/1.1\nHost: google.com\n\n";
-            var payloadLength = (uint)requestPayload.Length;
+            var payloadOptionsLength = 11 + 3; // Timestamp option + EOL Option
+            var payloadLength = (uint)requestPayload.Length + payloadOptionsLength;
             var i = 0;
 
             Assert.Equal((ushort)FfRequestVersion.V1, (ushort)IPAddress.NetworkToHostOrder((short)BitConverter.ToUInt16(packet, i)));
@@ -129,6 +130,24 @@ namespace FfClient.Tests
             Assert.Equal((ushort)payloadLength, (ushort)IPAddress.NetworkToHostOrder((short)BitConverter.ToUInt16(packet, i)));
             i += 2;
 
+            // Break option
+            Assert.Equal((byte)FfRequestOption.Type.TYPE_BREAK, packet[i++]);
+            // Option length (uint16)
+            Assert.Equal(0, (ushort)IPAddress.NetworkToHostOrder((short)BitConverter.ToUInt16(packet, i)));
+            i += 2;
+
+            // Timestamp option
+            Assert.Equal((byte)FfRequestOption.Type.TYPE_TIMESTAMP, packet[i++]);
+            // Option length (uint16)
+            Assert.Equal(8, (ushort)IPAddress.NetworkToHostOrder((short)BitConverter.ToUInt16(packet, i)));
+            i += 2;
+            Assert.InRange(
+                IPAddress.NetworkToHostOrder((long)BitConverter.ToUInt64(packet, i)),
+                DateTimeOffset.Now.ToUnixTimeSeconds() - 3,
+                DateTimeOffset.Now.ToUnixTimeSeconds() + 3
+            );
+            i += 8;
+
             // EOL option
             Assert.Equal((byte)FfRequestOption.Type.TYPE_EOL, packet[i++]);
             // Option length (uint16)
@@ -136,8 +155,8 @@ namespace FfClient.Tests
             i += 2;
 
             // Payload
-            Assert.Equal(Encoding.UTF8.GetBytes(requestPayload), packet.Skip(i).Take((int)payloadLength).ToArray());
-            i += (int)payloadLength;
+            Assert.Equal(Encoding.UTF8.GetBytes(requestPayload), packet.Skip(i).Take((int)requestPayload.Length).ToArray());
+            i += (int)requestPayload.Length;
 
             Assert.Equal(i, packets[0].Length);
         }
@@ -160,7 +179,8 @@ namespace FfClient.Tests
 
             var packet = packets[0].Packet;
             var requestPayload = "GET / HTTP/1.1\nHost: google.com\n\n";
-            var payloadLength = (uint)requestPayload.Length;
+            var payloadOptionsLength = 11 + 4 + 3; // Timestamp option + HTTPS + EOL Option
+            var payloadLength = (uint)requestPayload.Length + payloadOptionsLength;
             var i = 0;
 
             Assert.Equal((ushort)FfRequestVersion.V1, (ushort)IPAddress.NetworkToHostOrder((short)BitConverter.ToUInt16(packet, i)));
@@ -177,14 +197,6 @@ namespace FfClient.Tests
             // Chunk length (uint16)
             Assert.Equal((ushort)payloadLength, (ushort)IPAddress.NetworkToHostOrder((short)BitConverter.ToUInt16(packet, i)));
             i += 2;
-
-            // HTTPS option
-            Assert.Equal((byte)FfRequestOption.Type.TYPE_HTTPS, packet[i++]);
-            // Option length (uint16)
-            Assert.Equal(1, (ushort)IPAddress.NetworkToHostOrder((short)BitConverter.ToUInt16(packet, i)));
-            i += 2;
-            // Option value
-            Assert.Equal(1, packet[i++]);
 
             // Encryption mode option
             Assert.Equal((byte)FfRequestOption.Type.TYPE_ENCRYPTION_MODE, packet[i++]);
@@ -230,7 +242,7 @@ namespace FfClient.Tests
             i += 16;
 
             // EOL option
-            Assert.Equal((byte)FfRequestOption.Type.TYPE_EOL, packet[i++]);
+            Assert.Equal((byte)FfRequestOption.Type.TYPE_BREAK, packet[i++]);
             // Option length (uint16)
             Assert.Equal(0, (ushort)IPAddress.NetworkToHostOrder((short)BitConverter.ToUInt16(packet, i)));
             i += 2;
@@ -260,14 +272,15 @@ namespace FfClient.Tests
             Assert.Equal(2, (int)packets.Count);
 
             var requestPayload = $"GET / HTTP/1.1\nHost: google.com\nContent-Length: 2000\n\n{requestBody}";
-            var payloadLength = (uint)requestPayload.Length;
+            var payloadOptionsLength = 11 + 4 + 3; // Timestamp option + HTTPS option + EOL option
+            var payloadLength = (uint)requestPayload.Length + payloadOptionsLength;
 
             // -- Packet 1 --
 
             var packet1 = packets[0].Packet;
             var i1 = 0;
-            int chunkLength1 = 1273;
-
+            int chunkLength1 = 1277;
+            
             Assert.Equal((ushort)FfRequestVersion.V1, (ushort)IPAddress.NetworkToHostOrder((short)BitConverter.ToUInt16(packet1, i1)));
             i1 += 2;
             // Request ID (uint64)
@@ -283,13 +296,31 @@ namespace FfClient.Tests
             Assert.Equal(chunkLength1, (ushort)IPAddress.NetworkToHostOrder((short)BitConverter.ToUInt16(packet1, i1)));
             i1 += 2;
 
+            // Break option
+            Assert.Equal((byte)FfRequestOption.Type.TYPE_BREAK, packet1[i1++]);
+            // Option length (uint16)
+            Assert.Equal(0, (ushort)IPAddress.NetworkToHostOrder((short)BitConverter.ToUInt16(packet1, i1)));
+            i1 += 2;
+
             // HTTPS option
             Assert.Equal((byte)FfRequestOption.Type.TYPE_HTTPS, packet1[i1++]);
             // Option length (uint16)
             Assert.Equal(1, (ushort)IPAddress.NetworkToHostOrder((short)BitConverter.ToUInt16(packet1, i1)));
             i1 += 2;
-            // Option value
+            // Option value (uint8)
             Assert.Equal(1, packet1[i1++]);
+
+            // Timestamp option
+            Assert.Equal((byte)FfRequestOption.Type.TYPE_TIMESTAMP, packet1[i1++]);
+            // Option length (uint16)
+            Assert.Equal(8, (ushort)IPAddress.NetworkToHostOrder((short)BitConverter.ToUInt16(packet1, i1)));
+            i1 += 2;
+            Assert.InRange(
+                IPAddress.NetworkToHostOrder((long)BitConverter.ToUInt64(packet1, i1)),
+                DateTimeOffset.Now.ToUnixTimeSeconds() - 3,
+                DateTimeOffset.Now.ToUnixTimeSeconds() + 3
+            );
+            i1 += 8;
 
             // EOL option
             Assert.Equal((byte)FfRequestOption.Type.TYPE_EOL, packet1[i1++]);
@@ -299,8 +330,8 @@ namespace FfClient.Tests
 
             // Payload
             Assert.Equal(
-                Encoding.UTF8.GetBytes(requestPayload).Take(chunkLength1).ToArray(),
-                packet1.Skip(i1).Take(chunkLength1).ToArray()
+                Encoding.UTF8.GetBytes(requestPayload).Take(chunkLength1 - payloadOptionsLength).ToArray(),
+                packet1.Skip(i1).Take(chunkLength1 - payloadOptionsLength).ToArray()
             );
 
             // -- Packet 2 --
@@ -333,7 +364,7 @@ namespace FfClient.Tests
 
             // Payload
             Assert.Equal(
-                Encoding.UTF8.GetBytes(requestPayload).Skip(chunkLength1).ToArray(),
+                Encoding.UTF8.GetBytes(requestPayload).Skip(chunkLength1 - payloadOptionsLength).ToArray(),
                 packet2.Skip(i2).Take(chunkLength2).ToArray()
             );
         }

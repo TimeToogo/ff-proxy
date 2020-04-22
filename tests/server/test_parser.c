@@ -72,6 +72,7 @@ void test_request_parse_v1_single_chunk()
     TEST_ASSERT_EQUAL_MESSAGE(FF_VERSION_1, request->version, "Version check failed");
     TEST_ASSERT_EQUAL_MESSAGE(FF_REQUEST_STATE_RECEIVED, request->state, "State check failed");
     TEST_ASSERT_EQUAL_MESSAGE(1234568, request->request_id, "Request ID check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(false, request->payload_contains_options, "Payload contains options check failed");
     TEST_ASSERT_EQUAL_MESSAGE(strlen(http_request), request->received_length, "Received length check failed");
     TEST_ASSERT_EQUAL_MESSAGE(strlen(http_request), request->payload_length, "Payload length check failed");
     TEST_ASSERT_EQUAL_MESSAGE(0, request->options_length, "Options length check failed");
@@ -154,6 +155,49 @@ void test_request_parse_v1_multiple_chunks()
     FREE(full_http_request);
 }
 
+
+void test_request_parse_v1_break_option()
+{
+    char *payload = "payload";
+
+    struct __raw_ff_request_header header = {
+        .version = htons(FF_VERSION_1),
+        .request_id = htonll(1234568ULL),
+        .total_length = htonl(strlen(payload)),
+        .chunk_offset = htonl(0),
+        .chunk_length = htons(strlen(payload))};
+
+    struct __raw_ff_request_option_header break_option = {
+        .type = FF_REQUEST_OPTION_TYPE_BREAK,
+        .length = htons(0)};
+
+    int chunk_length = sizeof(header) + sizeof(break_option) + strlen(payload);
+
+    char *raw_chunk = (char *)malloc(chunk_length);
+    memcpy(raw_chunk, &header, (int)sizeof(header));
+    memcpy(raw_chunk + sizeof(header), &break_option, (int)sizeof(break_option));
+    memcpy(raw_chunk + sizeof(break_option) + sizeof(header), payload, strlen(payload));
+
+    struct ff_request *request = ff_request_alloc();
+    ff_request_parse_chunk(request, chunk_length, raw_chunk);
+
+    TEST_ASSERT_EQUAL_MESSAGE(FF_VERSION_1, request->version, "Version check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(FF_REQUEST_STATE_RECEIVED, request->state, "State check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(1234568, request->request_id, "Request ID check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(true, request->payload_contains_options, "Payload contains options check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(strlen(payload), request->received_length, "Received length check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(strlen(payload), request->payload_length, "Payload length check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(0, request->options_length, "Options length check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(NULL, request->options, "Options check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(0, request->payload->offset, "Payload node offset check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(strlen(payload), request->payload->length, "Payload node length check failed");
+    TEST_ASSERT_EQUAL_STRING_LEN_MESSAGE(payload, request->payload->value, request->payload->length, "Payload node value check failed");
+
+    ff_request_free(request);
+
+    FREE(raw_chunk);
+}
+
 void test_request_vectorise_payload()
 {
     char *chunk_1 = "chunk1";
@@ -183,6 +227,63 @@ void test_request_vectorise_payload()
     ff_request_free(request);
 
     FREE(full_payload);
+}
+
+void test_ff_request_parse_options_from_payload()
+{
+    // One option in request header (TIMESTAMP)
+    // Followed by two options in payload (HTTPS, EOL)
+
+    struct __raw_ff_request_option_header https_option = {
+        .type = FF_REQUEST_OPTION_TYPE_HTTPS,
+        .length = htons(1)};
+
+    struct __raw_ff_request_option_header eol_option = {
+        .type = FF_REQUEST_OPTION_TYPE_EOL,
+        .length = htons(0)};
+
+    char *payload = "payload";
+
+    size_t payload_length = sizeof(https_option) + 1 + sizeof(eol_option) + strlen(payload);
+    uint8_t *payload_with_options = calloc(1, payload_length);
+    uint8_t *ptr = payload_with_options;
+    memcpy(ptr, &https_option, sizeof(https_option));
+    ptr += sizeof(https_option);
+    *ptr++ = 1;
+    memcpy(ptr, &eol_option, sizeof(eol_option));
+    ptr += sizeof(eol_option);
+    memcpy(ptr, payload, strlen(payload));
+    ptr += strlen(payload);
+
+    struct ff_request *request = ff_request_alloc();
+
+    request->options_length = 1;
+    request->options = calloc(1, sizeof(struct ff_request_option_node *) * 1);
+    request->options[0] = ff_request_option_node_alloc();
+    request->options[0]->type = FF_REQUEST_OPTION_TYPE_TIMESTAMP;
+    request->payload_contains_options = true;
+
+    request->payload_length = payload_length;
+    request->payload = ff_request_payload_node_alloc();
+    ff_request_payload_load_buff(request->payload, payload_length, payload_with_options);
+    request->payload->length = payload_length;
+
+    ff_request_parse_options_from_payload(request);
+
+    TEST_ASSERT_EQUAL_MESSAGE(FF_REQUEST_STATE_PARSED_OPTIONS, request->state, "request state check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(false, request->payload_contains_options, "request contains options flag check failed");
+
+    TEST_ASSERT_EQUAL_MESSAGE(2, request->options_length, "request options length check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(FF_REQUEST_OPTION_TYPE_TIMESTAMP, request->options[0]->type, "request option (1) type check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(FF_REQUEST_OPTION_TYPE_HTTPS, request->options[1]->type, "request option (2) type check failed");
+
+    TEST_ASSERT_EQUAL_MESSAGE(strlen(payload), request->payload->length, "Payload node length check failed");
+    TEST_ASSERT_EQUAL_STRING_LEN_MESSAGE(payload, request->payload->value, strlen(payload), "Payload node value check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(NULL, request->payload->next, "Payload node next check failed");
+
+    ff_request_free(request);
+
+    FREE(payload_with_options);
 }
 
 void test_request_parse_v1_single_chunk_with_options()

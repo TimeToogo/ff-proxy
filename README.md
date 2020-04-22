@@ -78,14 +78,15 @@ Or it can be [installed locally from the source](/docs/installing-from-source.md
 
 #### Arguments
 
-| Argument                    | Required | Description                                                                                         |
-| --------------------------- | -------- | --------------------------------------------------------------------------------------------------- |
-| `--port <port>`             | Yes      | The UDP port to listen for incoming requests                                                        |
-| `--ip-address <ip>`         | No       | The IP address for which to accept incoming packets, defaulting to IPv4 wildcard address: _0.0.0.0_ |
-| `--ipv6-v6only`             | No       | When listening on IPv6 don't accept IPv4 connections                                                |
-| `--pre-shared-key <key>`    | No       | The pre-shared key used to decrypt incoming requests                                                |
-| `--pbkdf2-iterations <num>` | No       | The number of iterations used to derive the encryption key using PBKDF2 (default: 1000)             |
-| `-v`, `-vv`, `-vvv`         | No       | Enable verbose logging                                                                              |
+| Argument                         | Required | Description                                                                                                               |
+| -------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `--port <port>`                  | Yes      | The UDP port to listen for incoming requests                                                                              |
+| `--ip-address <ip>`              | No       | The IP address for which to accept incoming packets, defaulting to IPv4 wildcard address: _0.0.0.0_                       |
+| `--ipv6-v6only`                  | No       | When listening on IPv6 don't accept IPv4 connections                                                                      |
+| `--pre-shared-key <key>`         | No       | The pre-shared key used to decrypt incoming requests                                                                      |
+| `--pbkdf2-iterations <num>`      | No       | The number of iterations used to derive the encryption key using PBKDF2 (default: 1000)                                   |
+| `--timestamp-fudge-factor <num>` | No       | The number of seconds of leeway allowed when comparing the timestamp of incoming packets to the hosts time (default: 30) |
+| `-v`, `-vv`, `-vvv`              | No       | Enable verbose logging                                                                                                    |
 
 #### Testing
 

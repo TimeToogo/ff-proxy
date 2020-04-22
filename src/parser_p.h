@@ -13,4 +13,6 @@ void ff_request_parse_raw_http(struct ff_request *request, uint32_t buff_size, v
 
 void ff_request_parse_data_chunk(struct ff_request *request, uint32_t buff_size, void *buff);
 
+size_t ff_request_parse_options(struct ff_request *request, uint32_t buff_size, void *buff);
+
 #endif

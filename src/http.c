@@ -22,7 +22,9 @@ void ff_http_send_request(struct ff_request *request)
 {
     bool https = false;
 
-    for (int i = 0; i < request->options_length; i++)
+    // Read options backwards to ensure the encrypted options take precedence
+    uint8_t i = request->options_length;
+    while (i-- > 0)
     {
         switch (request->options[i]->type)
         {
