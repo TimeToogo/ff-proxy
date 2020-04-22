@@ -1,7 +1,7 @@
 from ff_client import FfClient, FfConfig, FfRequest
 import unittest
 import logging
-
+import time
 
 class TestFfClientEncryptedSingePacket(unittest.TestCase):
     def test_create_request_packets(self):
@@ -13,13 +13,15 @@ class TestFfClientEncryptedSingePacket(unittest.TestCase):
         http_request = "POST / HTTP/1.1\nHost: google.com.au\n\nThis is the request body"
         packets = client.create_request_packets(http_request)
 
+        payload_options_length = 11 + 4 + 3 # Timstamp option + HTTPS options + EOL option
+
         self.assertEqual(1, len(packets))
 
         packet1_buff = packets[0].payload
         packet1_len = packets[0].length
         ptr = 0
 
-        self.assertEqual(149, packet1_len)
+        self.assertEqual(163, packet1_len)
 
         # Request version
         self.assertEqual(FfRequest.Version.V1,
@@ -40,7 +42,7 @@ class TestFfClientEncryptedSingePacket(unittest.TestCase):
         ptr += 8
 
         # Total length
-        self.assertEqual(len(http_request), (
+        self.assertEqual(len(http_request) + payload_options_length, (
             packet1_buff[ptr] << 24
             | packet1_buff[ptr + 1] << 16
             | packet1_buff[ptr + 2] << 8
@@ -58,23 +60,11 @@ class TestFfClientEncryptedSingePacket(unittest.TestCase):
         ptr += 4
 
         # Chunk length
-        self.assertEqual(len(http_request), (
+        self.assertEqual(len(http_request) + payload_options_length, (
             packet1_buff[ptr] << 8
             | packet1_buff[ptr + 1]
         ))
         ptr += 2
-
-        # HTTPS option type
-        self.assertEqual(FfRequest.Option.Type.HTTPS, packet1_buff[ptr])
-        ptr += 1
-
-        # HTTPS option length
-        self.assertEqual(1, packet1_buff[ptr] << 16 | packet1_buff[ptr + 1])
-        ptr += 2
-
-        # HTTPS option value
-        self.assertEqual(1, packet1_buff[ptr])
-        ptr += 1
 
         # Encryption Mode option type
         self.assertEqual(FfRequest.Option.Type.ENCRYPTION_MODE, packet1_buff[ptr])
@@ -134,7 +124,7 @@ class TestFfClientEncryptedSingePacket(unittest.TestCase):
         ptr += 16
 
         # EOL option type
-        self.assertEqual(FfRequest.Option.Type.EOL, packet1_buff[ptr])
+        self.assertEqual(FfRequest.Option.Type.BREAK, packet1_buff[ptr])
         ptr += 1
 
         # EOL option length
@@ -143,4 +133,4 @@ class TestFfClientEncryptedSingePacket(unittest.TestCase):
 
         # Payload
         self.assertNotEqual(bytearray(http_request.encode('utf8')),
-                         packet1_buff[ptr:packet1_len])
+                         packet1_buff[ptr + payload_options_length:packet1_len])
