@@ -271,6 +271,7 @@ bool ff_proxy_validate_request_timestamp(struct ff_request *request, struct ff_c
         if (request->options[i]->type == FF_REQUEST_OPTION_TYPE_TIMESTAMP && request->options[i]->length == 8)
         {
             memcpy(&timestamp, request->options[i]->value, 8);
+            timestamp = ntohll(timestamp);
         }
     }
 

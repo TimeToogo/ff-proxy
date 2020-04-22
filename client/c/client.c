@@ -86,6 +86,7 @@ cleanup:
 uint8_t ff_client_create_payload_options(struct ff_request *request, struct ff_client_config *config)
 {
     uint64_t now = (uint64_t)time(NULL);
+    now = htonll(now);
 
     struct ff_request_payload_node *payload = NULL;
     struct ff_request_option_node **options = malloc(sizeof(struct ff_request_option_node *) * FF_REQUEST_MAX_OPTIONS);

@@ -7,6 +7,7 @@
 void test_validate_request_timestamp_valid()
 {
     uint64_t now = (uint64_t)time(NULL);
+    now = htonll(now);
 
     struct ff_request *request = ff_request_alloc();
 
