@@ -7,6 +7,7 @@ import {
   FfEncryptionMode,
   FfRequestVersion,
   FfKeyDeriveMode,
+  FfRequestOption,
 } from "./request";
 
 export interface FfClientOptions {
@@ -36,6 +37,7 @@ interface Packet {
 }
 
 const MAX_PACKET_LENGTH = 1300;
+const OPTION_HEADER_LENGTH = 3;
 
 export class FfClient {
   constructor(private readonly config: FfClientOptions) {
@@ -92,15 +94,15 @@ export class FfClient {
           : options.request
       ),
       options: [],
+      secureOptions: [],
     };
 
-    if (options.https) {
-      request.options.push({
-        type: FfRequestOptionType.HTTPS,
-        length: 1,
-        value: Buffer.of(1),
-      });
-    }
+    this._createSecureOptions(request, options);
+
+    const secureOptions = this._serializeRequestOptions(request.secureOptions);
+    const httpMessage = request.payload;
+
+    request.payload = Buffer.concat([secureOptions, httpMessage]);
 
     if (this.config.preSharedKey) {
       const encryptionResult = await this._encryptPayload(request.payload);
@@ -134,7 +136,7 @@ export class FfClient {
     }
 
     request.options.push({
-      type: FfRequestOptionType.EOL,
+      type: FfRequestOptionType.BREAK,
       length: 0,
       value: Buffer.alloc(0),
     });
@@ -143,6 +145,63 @@ export class FfClient {
     debug(`Packetised request into ${packets.length} packets`);
 
     return packets;
+  };
+
+  private _createSecureOptions = (
+    request: FfRequest,
+    options: FfRequestOptions
+  ): void => {
+    if (options.https) {
+      request.secureOptions.push({
+        type: FfRequestOptionType.HTTPS,
+        length: 1,
+        value: Buffer.of(1),
+      });
+    }
+
+    request.secureOptions.push({
+      type: FfRequestOptionType.TIMESTAMP,
+      length: 8,
+      value: this._getCurrentTimestampBuffer(),
+    });
+
+    request.secureOptions.push({
+      type: FfRequestOptionType.EOL,
+      length: 0,
+      value: Buffer.alloc(0),
+    });
+  };
+
+  private _serializeRequestOptions = (options: FfRequestOption[]): Buffer => {
+    const length = options.reduce(
+      (a, i) => OPTION_HEADER_LENGTH + i.length + a,
+      0
+    );
+    const buff = Buffer.alloc(length);
+
+    this._writeRequestOptions(buff, 0, options);
+
+    return buff;
+  };
+
+  private _getCurrentTimestampBuffer = (): Buffer => {
+    const buff = Buffer.alloc(8);
+    let ptr = 0;
+    const now = Math.floor(Date.now() / 1000);
+
+    // This line is broken, hopefully node fixes 64bit math before this matters
+    const nowHigh32 = now & (0xffffffff000000000 >> 32);
+    const nowLow32 = now & 0xffffffff;
+
+    for (let i = 0; i < 4; i++) {
+      buff[ptr++] = (nowHigh32 >> (24 - i * 8)) & 0x000000ff;
+    }
+
+    for (let i = 0; i < 4; i++) {
+      buff[ptr++] = (nowLow32 >> (24 - i * 8)) & 0x000000ff;
+    }
+
+    return buff;
   };
 
   public _encryptPayload = async (
@@ -242,16 +301,7 @@ export class FfClient {
               },
             ];
 
-      for (const option of requestOptions) {
-        packetBuff[ptr++] = option.type;
-        // Option length (int16)
-        for (let i = 0; i < 2; i++) {
-          packetBuff[ptr++] = (option.length >> (8 - i * 8)) & 0x000000ff;
-        }
-        for (let i = 0; i < option.length; i++) {
-          packetBuff[ptr++] = option.value[i];
-        }
-      }
+      ptr = this._writeRequestOptions(packetBuff, ptr, requestOptions);
 
       const bytesLeftInPacket = MAX_PACKET_LENGTH - ptr;
       const chunkLength = Math.min(bytesLeft, bytesLeftInPacket);
@@ -276,5 +326,24 @@ export class FfClient {
     }
 
     return packets;
+  };
+
+  private _writeRequestOptions = (
+    packetBuff: Uint8Array,
+    ptr: number,
+    options: FfRequestOption[]
+  ): number => {
+    for (const option of options) {
+      packetBuff[ptr++] = option.type;
+      // Option length (int16)
+      for (let i = 0; i < 2; i++) {
+        packetBuff[ptr++] = (option.length >> (8 - i * 8)) & 0x000000ff;
+      }
+      for (let i = 0; i < option.length; i++) {
+        packetBuff[ptr++] = option.value[i];
+      }
+    }
+
+    return ptr;
   };
 }
