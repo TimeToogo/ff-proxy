@@ -336,10 +336,12 @@ uint8_t ff_client_send_request(struct ff_client_config *config, struct ff_client
         ff_log(FF_WARNING, "Failed to set socket option (errno: %d)", errno);
     }
 
+
     for (uint16_t i = 0; i < packets_count; i++)
     {
         do
         {
+            ff_log(FF_INFO, "test: %d", packets_count);
             chunk_length = sendto(sockfd, packets[i].value + sent_length, packets[i].length, 0, res->ai_addr, res->ai_addrlen);
 
             if (chunk_length <= 0)
