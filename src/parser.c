@@ -50,6 +50,11 @@ bool ff_request_is_raw_http(uint32_t buff_size, void *buff)
 
     for (int i = 0; i < (int)(sizeof(HTTP_METHODS) / sizeof(HTTP_METHODS[0])); i++)
     {
+        if (buff_size < strlen(HTTP_METHODS[i]))
+        {
+            break;
+        }
+
         is_raw_http |= strncmp(HTTP_METHODS[i], buff, strlen(HTTP_METHODS[i])) == 0;
 
         if (is_raw_http)
@@ -262,13 +267,13 @@ size_t ff_request_parse_options(struct ff_request *request, uint32_t buff_size, 
         if (current_options_size + options_i >= FF_REQUEST_MAX_OPTIONS)
         {
             ff_log(FF_WARNING, "Encountered request with too many options");
-            return 0;
+            goto error;
         }
 
         if (buff_size < i + sizeof(struct __raw_ff_request_option_header))
         {
             ff_log(FF_WARNING, "Packet buffer ran out while processing TLV options");
-            return 0;
+            goto error;
         }
 
         option_header = (struct __raw_ff_request_option_header *)(buff + i);
@@ -283,7 +288,7 @@ size_t ff_request_parse_options(struct ff_request *request, uint32_t buff_size, 
             if (option_length != 0)
             {
                 ff_log(FF_WARNING, "Request option FF_REQUEST_OPTION_TYPE_BREAK must have length = 0");
-                return 0;
+                goto error;
             }
 
             request->payload_contains_options = true;
@@ -295,7 +300,7 @@ size_t ff_request_parse_options(struct ff_request *request, uint32_t buff_size, 
             if (option_length != 0)
             {
                 ff_log(FF_WARNING, "Request option FF_REQUEST_OPTION_TYPE_EOL must have length = 0");
-                return 0;
+                goto error;
             }
 
             request->payload_contains_options = false;
@@ -305,7 +310,7 @@ size_t ff_request_parse_options(struct ff_request *request, uint32_t buff_size, 
         if (buff_size < i + option_length)
         {
             ff_log(FF_WARNING, "Packet buffer ran out while processing TLV options");
-            return 0;
+            goto error;
         }
 
         options[options_i] = ff_request_option_node_alloc();
@@ -341,6 +346,21 @@ size_t ff_request_parse_options(struct ff_request *request, uint32_t buff_size, 
         options,
         sizeof(struct ff_request_option_node *) * options_i);
 
+    goto done;
+
+done:
+    goto cleanup;
+
+error:
+    i = 0;
+
+    for (uint8_t j = 0; j < options_i; j++) {
+        ff_request_option_node_free(options[j]);
+    }
+
+    goto cleanup;
+
+cleanup:
     return i;
 }
 

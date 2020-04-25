@@ -39,6 +39,8 @@ int main(void)
     RUN_TEST(test_request_parse_raw_http_get);
     RUN_TEST(test_request_parse_raw_http_post);
     RUN_TEST(test_request_parse_v1_single_chunk);
+    RUN_TEST(test_request_parse_single_char);
+    RUN_TEST(test_request_parse_fuzz1);
     RUN_TEST(test_request_parse_v1_multiple_chunks);
     RUN_TEST(test_request_parse_v1_break_option);
     RUN_TEST(test_request_vectorise_payload);

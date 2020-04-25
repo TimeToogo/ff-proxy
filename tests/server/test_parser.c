@@ -25,6 +25,30 @@ void test_request_parse_raw_http_get()
     ff_request_free(request);
 }
 
+void test_request_parse_single_char()
+{
+    char *payload = "D";
+
+    struct ff_request *request = ff_request_alloc();
+    ff_request_parse_chunk(request, strlen(payload), payload);
+
+    TEST_ASSERT_EQUAL_MESSAGE(FF_REQUEST_STATE_RECEIVING_FAIL, request->state, "State check failed");
+
+    ff_request_free(request);
+}
+
+void test_request_parse_fuzz1()
+{
+    uint8_t payload[] = "\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xF9\x00\x00\x00\xE6";
+
+    struct ff_request *request = ff_request_alloc();
+    ff_request_parse_chunk(request, sizeof(payload), &payload);
+
+    TEST_ASSERT_EQUAL_MESSAGE(FF_REQUEST_STATE_RECEIVING_FAIL, request->state, "State check failed");
+
+    ff_request_free(request);
+}
+
 void test_request_parse_raw_http_post()
 {
     char *raw_http_request = "POST / HTTP/1.1\nHost: stackoverflow.com\n\nSome\nTest\nData";
