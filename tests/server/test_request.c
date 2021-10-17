@@ -22,8 +22,6 @@ void test_request_option_node_free()
     option->value = (uint8_t *)malloc(10);
 
     ff_request_option_node_free(option);
-
-    TEST_ASSERT(option->value == NULL);
 }
 
 void test_request_payload_node_alloc()
@@ -48,8 +46,6 @@ void test_request_payload_node_free()
 
     ff_request_payload_node_free(node);
 
-    TEST_ASSERT(node->value == NULL);
-    TEST_ASSERT_MESSAGE(node->next == next_node, "Should not free next node");
     free(next_node);
 }
 
