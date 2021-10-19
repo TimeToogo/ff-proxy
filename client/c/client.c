@@ -339,20 +339,27 @@ uint8_t ff_client_send_request(struct ff_client_config *config, struct ff_client
 
     for (uint16_t i = 0; i < packets_count; i++)
     {
-        do
+        ff_log(
+            FF_INFO, "sending packet %d byte range [%d, %d]", 
+            i, 0, (int)packets[i].length
+        );
+        chunk_length = sendto(
+            sockfd, 
+            packets[i].value, 
+            (int)packets[i].length, 
+            0, 
+            res->ai_addr, 
+            res->ai_addrlen
+        );
+
+        if (chunk_length <= 0)
         {
-            ff_log(FF_INFO, "test: %d", packets_count);
-            chunk_length = sendto(sockfd, packets[i].value + sent_length, packets[i].length, 0, res->ai_addr, res->ai_addrlen);
+            printf("errno: %d\n", errno);
+            ff_log(FF_FATAL, "Failed to send UDP datagrams during byte range %d - %hu", 0, packets[i].length);
+            goto error;
+        }
 
-            if (chunk_length <= 0)
-            {
-                printf("errno: %d\n", errno);
-                ff_log(FF_FATAL, "Failed to send UDP datagrams during byte range %d - %hu", sent_length, packets[i].length);
-                goto error;
-            }
-
-            sent_length += chunk_length;
-        } while (sent_length < packets[i].length);
+        sent_length += chunk_length;
     }
 
     ff_log(FF_DEBUG, "Finished sending %d bytes", sent_length);
