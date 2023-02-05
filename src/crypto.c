@@ -346,7 +346,7 @@ bool ff_derive_key_pbkdf2(
     int res = PKCS5_PBKDF2_HMAC(
         (char *)config->key,
         strlen((char *)config->key),
-        salt, salt_length - 1,
+        salt, salt_length,
         config->pbkdf2_iterations,
         EVP_sha256(),
         out_key->length,
