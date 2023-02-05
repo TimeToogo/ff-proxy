@@ -112,11 +112,11 @@ void test_request_decrypt_valid()
 {
     struct ff_request *request = ff_request_alloc();
 
-    struct ff_encryption_config config = {.key = (uint8_t *)"testkey123456789", .pbkdf2_iterations = 0};
+    struct ff_encryption_config config = {.key = (uint8_t *)"testkey", .pbkdf2_iterations = 1000};
 
-    // Ciphertext for plaintext: "plaintext" (with null byte)
-    uint8_t ciphertext[] = {124, 30, 146, 130, 140, 105, 211, 155, 242, 28};
-    uint8_t tag[] = {26, 77, 224, 83, 38, 78, 160, 226, 3, 47, 34, 41, 136, 183, 244, 213};
+    // Ciphertext for plaintext: "hello world" (with null byte)
+    int8_t ciphertext[] = {33, -93, -49, -95, -55, 127, -104, -114, 38, -82, -60};
+    int8_t tag[] = {117, 32, -60, -128, 15, 100, -18, 96, 81, 1, -52, -51, 96, 127, 10, -1};
     uint8_t iv[] = "test12345678";
     uint8_t salt[] = "test123456789012";
 
@@ -161,10 +161,10 @@ void test_request_decrypt_valid()
     ff_decrypt_request(request, &config);
 
     TEST_ASSERT_EQUAL_MESSAGE(FF_REQUEST_STATE_DECRYPTED, request->state, "state check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(10, request->payload_length, "payload length check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(11, request->payload_length, "payload length check failed");
     TEST_ASSERT_EQUAL_MESSAGE(0, request->payload->offset, "payload node offset check failed");
-    TEST_ASSERT_EQUAL_MESSAGE(10, request->payload->length, "payload node length check failed");
-    TEST_ASSERT_EQUAL_STRING_LEN_MESSAGE("plaintext", request->payload->value, 10, "payload check failed");
+    TEST_ASSERT_EQUAL_MESSAGE(11, request->payload->length, "payload node length check failed");
+    TEST_ASSERT_EQUAL_STRING_LEN_MESSAGE("hello world", request->payload->value, 11, "payload check failed");
 
     ff_request_free(request);
 }
