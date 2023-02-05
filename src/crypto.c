@@ -346,7 +346,7 @@ bool ff_derive_key_pbkdf2(
     int res = PKCS5_PBKDF2_HMAC(
         (char *)config->key,
         strlen((char *)config->key),
-        salt, salt_length,
+        salt, salt_length - 1,
         config->pbkdf2_iterations,
         EVP_sha256(),
         out_key->length,
@@ -356,7 +356,8 @@ bool ff_derive_key_pbkdf2(
 
     if (!success)
     {
-        ff_log(FF_ERROR, "Failed to dervice key using PBKDF2 algorithm");
+        ff_log(FF_ERROR, ERR_error_string(ERR_get_error(), NULL));
+        ff_log(FF_ERROR, "Failed to derive key using PBKDF2 algorithm");
     }
 
     return success;
